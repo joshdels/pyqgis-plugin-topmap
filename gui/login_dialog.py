@@ -4,6 +4,10 @@ import os
 
 
 class LoginDialog(QtWidgets.QDialog):
+    """
+    Handles the authentication of the QGIS via QDialog
+    parameters input is 'username' and 'password'
+    """
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -12,6 +16,7 @@ class LoginDialog(QtWidgets.QDialog):
 
         self.api = TopMapApiClient()
 
+        self.passwordInput.setEchoMode(QtWidgets.QLineEdit.Password)
         self.signinButton.clicked.connect(self.handle_login)
 
     def handle_login(self):

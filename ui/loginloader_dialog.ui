@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>LoaderDialog</class>
+ <widget class="QDialog" name="LoaderDialog">
+  <property name="geometry">
+   <rect><width>300</width><height>200</height></rect>
+  </property>
+  <property name="windowTitle">
+   <string>Authenticating...</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="margin">
+    <number>40</number>
+   </property>
+   <item>
+    <spacer name="vSpacer1">
+     <property name="orientation"><enum>Qt::Vertical</enum></property>
+    </spacer>
+   </item>
+   <item>
+    <widget class="QLabel" name="loaderIcon">
+     <property name="text">
+      <string>◌</string> </property>
+     <property name="font">
+      <font><pointsize>24</pointsize></font>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="statusLabel">
+     <property name="font">
+      <font><weight>75</weight><bold>true</bold></font>
+     </property>
+     <property name="text">
+      <string>Signing you in...</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <spacer name="vSpacer2">
+     <property name="orientation"><enum>Qt::Vertical</enum></property>
+    </spacer>
+   </item>
+  </layout>
+ </widget>
+</ui>
