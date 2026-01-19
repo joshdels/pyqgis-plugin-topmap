@@ -1,4 +1,5 @@
-from .hello_layer_info import HelloLayerInfo
+from .topmap_sync import TopMapSync
 
 def classFactory(iface):
-    return HelloLayerInfo(iface)
+    """Load TopMap Sync Plugin."""
+    return TopMapSync(iface)

@@ -1,6 +1,11 @@
 [general]
-name=Hello Layer Info
+name=TopMap Sync
 qgisMinimumVersion=3.0
+version=1.0.0
+description=Automatically sync QGIS project files with TopMap Sync.
 author=Joshua De Leon
-version=0.1
-description=Shows info about the currently active vector layer wahts uppp boi
+email=assistantgisjosh@gmail.com
+tags=cloud,database,file management,sync
+homepage=https://topmapsolutions.com/
+category=Web
+icon=resources/icon.png
