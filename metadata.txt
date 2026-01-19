@@ -1,0 +1,6 @@
+[general]
+name=Hello Layer Info
+qgisMinimumVersion=3.0
+author=Joshua De Leon
+version=0.1
+description=Shows info about the currently active vector layer wahts uppp boi
