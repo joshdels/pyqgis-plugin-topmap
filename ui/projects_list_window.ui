@@ -60,6 +60,13 @@
           </property>
          </widget>
         </item>
+        <item>
+         <widget class="QPushButton" name="logoutButton">
+          <property name="text">
+           <string>Logout</string>
+          </property>
+         </widget>
+        </item>
        </layout>
       </item>
       <item>
@@ -98,11 +105,6 @@
       <property name="selectionBehavior">
        <enum>QAbstractItemView::SelectRows</enum>
       </property>
-      <column>
-       <property name="text">
-        <string>Item</string>
-       </property>
-      </column>
       <column>
        <property name="text">
         <string>Name</string>

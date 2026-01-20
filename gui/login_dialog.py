@@ -1,42 +1,63 @@
-from PyQt5 import QtWidgets, uic
-from ..core.login import TopMapApiClient
 import os
+from PyQt5 import QtWidgets, uic
+from ..core.topmap_api import TopMapApiClient
+from qgis.core import QgsSettings
 
 
 class LoginDialog(QtWidgets.QDialog):
     """
-    Handles the authentication of the QGIS via QDialog
-    parameters input is 'username' and 'password'
+    Login dialog for TopMapSync plugin.
+
+    Handles authentication via TopMap API. Saves token and user preferences
+    in QGIS QgsSettings if "Remember me" is checked.
     """
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
+        # Load UI
         ui_path = os.path.join(os.path.dirname(__file__), "..", "ui", "login_dialog.ui")
         uic.loadUi(ui_path, self)
 
+        # API client and settings
         self.api = TopMapApiClient()
+        self.settings = QgsSettings()
 
+        # Configure UI
         self.passwordInput.setEchoMode(QtWidgets.QLineEdit.Password)
         self.signinButton.clicked.connect(self.handle_login)
 
-    def handle_login(self):
-        username = self.usernameInput.text()
+        # Load saved username if available
+        saved_username = self.settings.value("TopMap/username", "")
+        self.usernameInput.setText(saved_username)
+
+    def handle_login(self) -> None:
+        """Attempt login with entered username and password."""
+        username = self.usernameInput.text().strip()
         password = self.passwordInput.text()
         remember = self.rememberCheckbox.isChecked()
 
         if not username or not password:
-            QtWidgets.QMessageBox.warning(self, "Login", "Enter username and password")
+            QtWidgets.QMessageBox.warning(
+                self, "Login", "Please enter both username and password."
+            )
             return
 
         try:
+            # Perform API login
             token = self.api.login(username, password)
-            QtWidgets.QMessageBox.information(self, "Success", "Login sucessful!")
-            if remember:
-                self.save_token(token)
-            self.accept()
-        except Exception as e:
-            QtWidgets.QMessageBox.critical(self, "Login failed", str(e))
 
-    def save_token(self, token):
-        settings = QtWidgets.QSettings("TopMap", "TopMapPlugin")
-        settings.setValue("token", token)
+            # Save token and preferences if "Remember me" is checked
+            if remember:
+                self.settings.setValue("TopMap/token", token)
+                self.settings.setValue("TopMap/username", username)
+                self.settings.setValue("TopMap/remember", True)
+            else:
+                self.settings.remove("TopMap/token")
+                self.settings.setValue("TopMap/remember", False)
+
+            # Close dialog and signal successful login
+            self.accept()
+
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Login Failed", str(e))
