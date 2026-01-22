@@ -1,5 +1,7 @@
 from PyQt5 import QtCore, QtWidgets, uic
+from PyQt5.QtGui import QPixmap
 from ..core.topmap_api import TopMapApiClient
+from ..core.project_manager import ProjectSettingsManager
 from qgis.core import QgsSettings
 import os
 
@@ -15,6 +17,9 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
         )
         uic.loadUi(ui_path, self)
 
+        # --- ADD THIS TO INJECT THE PATH LABEL ---
+        self.refresh_directory_display()
+
         # Other Windows
         self.api = api or TopMapApiClient()
         self.projectTable.doubleClicked.connect(self.on_table_double_clicked)
@@ -29,29 +34,82 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
         self.closeButton.clicked.connect(self.close)
         self.logoutButton.clicked.connect(self.logout)
 
-        # Populate table initially
+        # Fetch Data from the API
         self.populate_project_list()
+        self.get_user_profile()
 
     # -------------------------
     # Button Handlers
     # -------------------------
     def create_new_project(self) -> None:
-        pass
+        QtWidgets.QMessageBox.information(self, "Update", "Feature coming soon!")
 
     def on_sync_clicked(self) -> None:
-        pass
+        QtWidgets.QMessageBox.information(self, "Update", "Feature coming soon!")
 
     def on_edit_clicked(self) -> None:
-        pass
+        QtWidgets.QMessageBox.information(self, "Update", "Feature coming soon!")
 
     def on_refresh_clicked(self) -> None:
-        pass
+        QtWidgets.QMessageBox.information(self, "Update", "Feature coming soon!")
 
     def on_open_project_clicked(self) -> None:
-        pass
+        path = QtWidgets.QFileDialog.getExistingDirectory(self, "Select Root")
+        if path:
+            ProjectSettingsManager.set_root_dir(path)
+            self.refresh_directory_display()
+            self.statusBar().showMessage(f"Project root updated.", 3000)
+
+    def refresh_directory_display(self):
+            """Update the label that sits below the 'Set Root Folder' button."""
+            current_path = ProjectSettingsManager.get_root_dir()
+            if current_path:
+                display_path = (current_path[:27] + '...') if len(current_path) > 30 else current_path
+                self.rootPathLabel.setText(display_path)
+                self.rootPathLabel.setToolTip(current_path)
+                self.rootPathLabel.setStyleSheet("color: #2e7d32; font-size: 10px; font-style: bold;")
+            else:
+                self.rootPathLabel.setText("⚠️ Root Folder Not Set")
+                self.rootPathLabel.setStyleSheet("color: #d32f2f; font-size: 10px; font-style: bold;")
+
+    def update_project(self):
+        """Handle 'Update Details' button click (placeholder)."""
+        QtWidgets.QMessageBox.information(self, "Update", "Feature coming soon!")
 
     def on_help_clicked(self) -> None:
-        pass
+        QtWidgets.QMessageBox.information(self, "Update", "Feature coming soon!")
+
+    # -------------------------
+    # User Information
+    # -------------------------
+    def get_user_profile(self):
+        """Fetch user information from the API"""
+        try:
+            user_details = self.api.get_user_profile()
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "API Error", str(e))
+            return
+
+        self.usernameLabel.setText(user_details.get("username", "user"))
+
+        profile_info = user_details.get("profile", {})
+        pixmap = self.api.get_user_profile_image(profile_info)
+        if pixmap:
+            self.set_user_image(pixmap)
+
+    def set_user_image(self, pixmap: QPixmap):
+        """Display the user's image in the QGraphicsView"""
+        if pixmap.isNull():
+            return
+
+        self.scene = QtWidgets.QGraphicsScene()
+        self.scene.addPixmap(pixmap)
+        self.userPicture.setScene(self.scene)
+
+        self.userPicture.setAlignment(QtCore.Qt.AlignCenter)
+        self.userPicture.fitInView(
+            self.scene.itemsBoundingRect(), QtCore.Qt.KeepAspectRatio
+        )
 
     # -------------------------
     # Logout
@@ -91,7 +149,7 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
             item1.setData(QtCore.Qt.UserRole, project)
             table.setItem(row, 0, item1)
 
-            item2 = QtWidgets.QTableWidgetItem(project.get("owner", "Unknown"))
+            item2 = QtWidgets.QTableWidgetItem(project.get("user", "Unknown"))
             item2.setFlags(item2.flags() ^ QtCore.Qt.ItemIsEditable)
             table.setItem(row, 1, item2)
 
@@ -107,7 +165,12 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
         if project_data:
             from .project_details_window import ProjectDetailsWindow
 
-            self.details_window = ProjectDetailsWindow(project_data, self)
+            self.details_window = ProjectDetailsWindow(
+                project_data,
+                parent=self,
+                api=self.api,
+                username=self.usernameLabel.text(),
+            )
             self.details_window.show()
         else:
             print("No data found in the userRole for this row")

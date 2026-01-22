@@ -6,7 +6,7 @@ from qgis.core import QgsSettings
 class ProjectDetailsWindow(QtWidgets.QMainWindow):
     """Window to view and edit project details."""
 
-    def __init__(self, project_data, parent=None):
+    def __init__(self, project_data, parent=None, api=None, username=None):
         super().__init__(parent)
 
         # Load the UI
@@ -14,8 +14,14 @@ class ProjectDetailsWindow(QtWidgets.QMainWindow):
             os.path.dirname(__file__), "..", "ui", "project_details_window.ui"
         )
         uic.loadUi(ui_path, self)
-
+        
         self.project_data = project_data
+        
+        if username:
+            self.usernameLabel.setText(username)
+        else:
+            self.usernameLabel.setText(self.project_data.get("user", "User1"))
+
         self.display_data()
 
         # Connect buttons
@@ -43,7 +49,6 @@ class ProjectDetailsWindow(QtWidgets.QMainWindow):
         )
         self.ownerInput.setText(self.project_data.get("owner", "Unknown"))
         self.folderPathInput.setText(self.project_data.get("file", ""))
-        self.usernameLabel.setText(self.project_data.get("owner", "User"))
 
     def update_project(self):
         """Handle 'Update Details' button click (placeholder)."""
