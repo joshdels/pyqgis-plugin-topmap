@@ -14,9 +14,9 @@ class ProjectDetailsWindow(QtWidgets.QMainWindow):
             os.path.dirname(__file__), "..", "ui", "project_details_window.ui"
         )
         uic.loadUi(ui_path, self)
-        
+
         self.project_data = project_data
-        
+
         if username:
             self.usernameLabel.setText(username)
         else:
@@ -25,8 +25,10 @@ class ProjectDetailsWindow(QtWidgets.QMainWindow):
         self.display_data()
 
         # Connect buttons
+        self.loadButton.clicked.connect(self.update_project)  # testing
+        self.syncButton.clicked.connect(self.update_project)  # testing
+        self.helpButton.clicked.connect(self.update_project)  # testing
         self.closeButton.clicked.connect(self.close)
-        self.pushButton.clicked.connect(self.update_project)
         self.logoutButton.clicked.connect(self.logout)
 
     def logout(self):
@@ -36,9 +38,7 @@ class ProjectDetailsWindow(QtWidgets.QMainWindow):
         settings.remove("TopMap/username")
         settings.remove("TopMap/remember")
 
-        QtWidgets.QMessageBox.information(
-            self, "Logout", "You have been logged out."
-        )
+        QtWidgets.QMessageBox.information(self, "Logout", "You have been logged out.")
         self.close()
 
     def display_data(self):
@@ -47,11 +47,12 @@ class ProjectDetailsWindow(QtWidgets.QMainWindow):
         self.descriptionInput.setPlainText(
             self.project_data.get("description", "No description provided.")
         )
-        self.ownerInput.setText(self.project_data.get("owner", "Unknown"))
+        self.ownerInput.setText(
+            self.project_data.get("user", {}).get("username", "Unknown")
+        )
+
         self.folderPathInput.setText(self.project_data.get("file", ""))
 
     def update_project(self):
         """Handle 'Update Details' button click (placeholder)."""
-        QtWidgets.QMessageBox.information(
-            self, "Update", "Feature coming soon!"
-        )
+        QtWidgets.QMessageBox.information(self, "Update", "Feature coming soon!")

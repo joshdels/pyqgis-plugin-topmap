@@ -42,7 +42,7 @@
            </font>
           </property>
           <property name="text">
-           <string>GREETINGS,</string>
+           <string>Good Day!</string>
           </property>
          </widget>
         </item>
@@ -50,7 +50,7 @@
          <widget class="QLabel" name="usernameLabel">
           <property name="font">
            <font>
-            <pointsize>18</pointsize>
+            <pointsize>12</pointsize>
             <weight>75</weight>
             <bold>true</bold>
            </font>
@@ -81,19 +81,6 @@
          </size>
         </property>
        </spacer>
-      </item>
-      <item>
-       <widget class="QGraphicsView" name="userPicture">
-        <property name="maximumSize">
-         <size>
-          <width>60</width>
-          <height>60</height>
-         </size>
-        </property>
-        <property name="toolTip">
-         <string>User Profile</string>
-        </property>
-       </widget>
       </item>
      </layout>
     </item>

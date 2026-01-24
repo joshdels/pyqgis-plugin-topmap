@@ -1,6 +1,4 @@
 import requests
-from PyQt5.QtGui import QPixmap
-from io import BytesIO
 
 
 class TopMapApiClient:
@@ -67,24 +65,6 @@ class TopMapApiClient:
             return response.json()
         except requests.RequestException as e:
             raise RuntimeError(f"Failed to fetch user information: {e}")
-
-    def get_user_profile_image(self, profile: dict):
-        # Still unfinished ganna check later
-        url = profile.get("image")
-        if not url:
-            return None
-
-        try:
-            # Use session to ensure auth headers are included if needed
-            response = self.session.get(url, timeout=self.timeout)
-            response.raise_for_status()
-
-            pixmap = QPixmap()
-            pixmap.loadFromData(response.content)
-            return pixmap
-        except Exception as e:
-            print(f"Image load failed: {e}")
-            return None
 
     def get_projects(self):
         """Fetch projects for the authenticated user."""

@@ -1,5 +1,4 @@
 from PyQt5 import QtCore, QtWidgets, uic
-from PyQt5.QtGui import QPixmap
 from ..core.topmap_api import TopMapApiClient
 from ..core.project_manager import ProjectSettingsManager
 from qgis.core import QgsSettings
@@ -61,16 +60,22 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
             self.statusBar().showMessage(f"Project root updated.", 3000)
 
     def refresh_directory_display(self):
-            """Update the label that sits below the 'Set Root Folder' button."""
-            current_path = ProjectSettingsManager.get_root_dir()
-            if current_path:
-                display_path = (current_path[:27] + '...') if len(current_path) > 30 else current_path
-                self.rootPathLabel.setText(display_path)
-                self.rootPathLabel.setToolTip(current_path)
-                self.rootPathLabel.setStyleSheet("color: #2e7d32; font-size: 10px; font-style: bold;")
-            else:
-                self.rootPathLabel.setText("⚠️ Root Folder Not Set")
-                self.rootPathLabel.setStyleSheet("color: #d32f2f; font-size: 10px; font-style: bold;")
+        """Update the label that sits below the 'Set Root Folder' button."""
+        current_path = ProjectSettingsManager.get_root_dir()
+        if current_path:
+            display_path = (
+                (current_path[:27] + "...") if len(current_path) > 30 else current_path
+            )
+            self.rootPathLabel.setText(display_path)
+            self.rootPathLabel.setToolTip(current_path)
+            self.rootPathLabel.setStyleSheet(
+                "color: #2e7d32; font-size: 10px; font-style: bold;"
+            )
+        else:
+            self.rootPathLabel.setText("⚠️ Root Folder Not Set")
+            self.rootPathLabel.setStyleSheet(
+                "color: #d32f2f; font-size: 10px; font-style: bold;"
+            )
 
     def update_project(self):
         """Handle 'Update Details' button click (placeholder)."""
@@ -93,33 +98,25 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
         self.usernameLabel.setText(user_details.get("username", "user"))
 
         profile_info = user_details.get("profile", {})
-        pixmap = self.api.get_user_profile_image(profile_info)
-        if pixmap:
-            self.set_user_image(pixmap)
-
-    def set_user_image(self, pixmap: QPixmap):
-        """Display the user's image in the QGraphicsView"""
-        if pixmap.isNull():
-            return
-
-        self.scene = QtWidgets.QGraphicsScene()
-        self.scene.addPixmap(pixmap)
-        self.userPicture.setScene(self.scene)
-
-        self.userPicture.setAlignment(QtCore.Qt.AlignCenter)
-        self.userPicture.fitInView(
-            self.scene.itemsBoundingRect(), QtCore.Qt.KeepAspectRatio
-        )
 
     # -------------------------
     # Logout
     # -------------------------
     def logout(self):
         """Logout the user and close the window"""
+
+        try:
+            if self.api:
+                self.api.logout()
+        except Exception as e:
+            print(f"Logout API Error")
+
         settings = QgsSettings()
-        settings.remove("TopMap/token")
-        settings.remove("TopMap/username")
-        settings.remove("TopMap/remember")
+        settings.remove("TopMap")
+
+        self.usernameLabel.clear()
+        self.api = None
+
         QtWidgets.QMessageBox.information(self, "Logout", "You have been logged out.")
         self.close()
 
@@ -127,6 +124,7 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
     # Table Logic
     # -------------------------
     def closeEvent(self, event):
+        self.api = None
         event.accept()
 
     def populate_project_list(self):
@@ -149,7 +147,9 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
             item1.setData(QtCore.Qt.UserRole, project)
             table.setItem(row, 0, item1)
 
-            item2 = QtWidgets.QTableWidgetItem(project.get("user", "Unknown"))
+            item2 = QtWidgets.QTableWidgetItem(
+                project.get("user", {}).get("username", "Unknown")
+            )
             item2.setFlags(item2.flags() ^ QtCore.Qt.ItemIsEditable)
             table.setItem(row, 1, item2)
 

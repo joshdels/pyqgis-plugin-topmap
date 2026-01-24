@@ -70,11 +70,11 @@ class TopMapSync:
             api.session.headers.update({"Authorization": f"Token {token}"})
 
         # Create window if not already open
-        if self.window is None:
-            self.window = ProjectlistWindow(api=api, parent=self.iface.mainWindow())
-        else:
-            # Optionally refresh API in existing window
-            self.window.api = api
+        if self.window:
+            self.window.close()
+            self.window = None
+
+        self.window = ProjectlistWindow(api=api, parent=self.iface.mainWindow())
 
         # Show and populate the table
         self.window.show()

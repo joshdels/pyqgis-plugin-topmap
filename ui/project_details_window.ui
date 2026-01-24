@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>900</width>
+    <width>598</width>
     <height>850</height>
    </rect>
   </property>
@@ -36,8 +36,13 @@
        <layout class="QVBoxLayout" name="greetingLayout">
         <item>
          <widget class="QLabel" name="label">
+          <property name="font">
+           <font>
+            <pointsize>9</pointsize>
+           </font>
+          </property>
           <property name="text">
-           <string>GREETINGS,</string>
+           <string>Good Day!</string>
           </property>
          </widget>
         </item>
@@ -45,7 +50,7 @@
          <widget class="QLabel" name="usernameLabel">
           <property name="font">
            <font>
-            <pointsize>16</pointsize>
+            <pointsize>9</pointsize>
             <weight>75</weight>
             <bold>true</bold>
            </font>
@@ -76,16 +81,6 @@
          </size>
         </property>
        </spacer>
-      </item>
-      <item>
-       <widget class="QGraphicsView" name="graphicsView">
-        <property name="maximumSize">
-         <size>
-          <width>64</width>
-          <height>64</height>
-         </size>
-        </property>
-       </widget>
       </item>
      </layout>
     </item>
@@ -132,7 +127,7 @@
          </widget>
         </item>
         <item row="0" column="2">
-         <widget class="QCheckBox" name="checkBox">
+         <widget class="QCheckBox" name="isprivateCheckbox">
           <property name="text">
            <string>Private</string>
           </property>
@@ -226,15 +221,31 @@
     <item>
      <layout class="QHBoxLayout" name="footerLayout">
       <item>
-       <widget class="QPushButton" name="pushButton">
+       <widget class="QPushButton" name="loadButton">
         <property name="minimumSize">
          <size>
-          <width>140</width>
+          <width>100</width>
           <height>35</height>
          </size>
         </property>
         <property name="text">
-         <string>Update Details</string>
+         <string>Load to QGIS</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="syncButton">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>100</width>
+          <height>35</height>
+         </size>
+        </property>
+        <property name="text">
+         <string>Sync</string>
         </property>
        </widget>
       </item>
