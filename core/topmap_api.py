@@ -4,7 +4,8 @@ import requests
 class TopMapApiClient:
     """Simple client for TopMap API."""
 
-    BASE_URL = "https://topmapsolutions.com/api/v1"
+    # BASE_URL = "https://topmapsolutions.com/api/v1"
+    BASE_URL = "http://127.0.0.1:8000/api/v1"
 
     def __init__(self, timeout=20):
         """Initialize the API client with default headers and timeout."""
@@ -74,6 +75,36 @@ class TopMapApiClient:
         try:
             response = self.session.get(
                 f"{self.BASE_URL}/projects/", timeout=self.timeout
+            )
+            response.raise_for_status()
+            return response.json()
+        except requests.RequestException as e:
+            raise RuntimeError(f"Failed to fetch projects: {e}")
+
+    def create_project(self, payload):
+        """Create a new project from authenticated users."""
+        if not self.token:
+            raise ValueError("Not Authenticated. Please login first.")
+        try:
+            response = self.session.post(
+                f"{self.BASE_URL}/projects/", json=payload, timeout=self.timeout
+            )
+            response.raise_for_status()
+            return response.json()
+        except requests.RequestException as e:
+            raise RuntimeError(f"Failed to create project: {e}")
+
+    def upload_project(self, id, input_payload):
+        # to be edited in the uploads (put)
+        """Upload a new project from authenticated users."""
+        if not self.token:
+            raise ValueError("Not Authenticated. Please login first.")
+
+        payload = input_payload
+
+        try:
+            response = self.session.put(
+                f"{self.BASE_URL}/projects/{id}/", json=payload, timeout=self.timeout
             )
             response.raise_for_status()
             return response.json()

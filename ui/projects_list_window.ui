@@ -61,7 +61,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="logoutButton">
+         <widget class="QPushButton" name="logoutBtn">
           <property name="text">
            <string>Logout</string>
           </property>
@@ -115,7 +115,7 @@
        <number>10</number>
       </property>
       <item>
-       <widget class="QPushButton" name="newButton">
+       <widget class="QPushButton" name="newBtn">
         <property name="minimumSize">
          <size>
           <width>100</width>
@@ -128,7 +128,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="syncButton">
+       <widget class="QPushButton" name="loadBtn">
         <property name="minimumSize">
          <size>
           <width>80</width>
@@ -136,12 +136,12 @@
          </size>
         </property>
         <property name="text">
-         <string>Sync</string>
+         <string>Load Projects</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="editButton">
+       <widget class="QPushButton" name="editBtn">
         <property name="minimumSize">
          <size>
           <width>80</width>
@@ -154,7 +154,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="refreshButton">
+       <widget class="QPushButton" name="refreshBtn">
         <property name="text">
          <string>Refresh</string>
         </property>
@@ -179,7 +179,7 @@
          <number>4</number>
         </property>
         <item>
-         <widget class="QPushButton" name="folderButton">
+         <widget class="QPushButton" name="folderBtn">
           <property name="text">
            <string>📁 Set Root Folder</string>
           </property>
@@ -224,14 +224,14 @@
        </spacer>
       </item>
       <item>
-       <widget class="QPushButton" name="helpButton">
+       <widget class="QPushButton" name="helpBtn">
         <property name="text">
          <string>Help</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="closeButton">
+       <widget class="QPushButton" name="closeBtn">
         <property name="text">
          <string>Close</string>
         </property>

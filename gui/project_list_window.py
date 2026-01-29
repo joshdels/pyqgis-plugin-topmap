@@ -1,6 +1,7 @@
 from PyQt5 import QtCore, QtWidgets, uic
 from ..core.topmap_api import TopMapApiClient
 from ..core.project_manager import ProjectSettingsManager
+from .project_upload_window import ProjectUploadWindow
 from qgis.core import QgsSettings
 import os
 
@@ -24,14 +25,14 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
         self.projectTable.doubleClicked.connect(self.on_table_double_clicked)
 
         # Buttons
-        self.newButton.clicked.connect(self.create_new_project)
-        self.syncButton.clicked.connect(self.on_sync_clicked)
-        self.editButton.clicked.connect(self.on_edit_clicked)
-        self.refreshButton.clicked.connect(self.populate_project_list)
-        self.folderButton.clicked.connect(self.on_open_project_clicked)
-        self.helpButton.clicked.connect(self.on_help_clicked)
-        self.closeButton.clicked.connect(self.close)
-        self.logoutButton.clicked.connect(self.logout)
+        self.newBtn.clicked.connect(self.create_new_project)
+        self.loadBtn.clicked.connect(self.on_sync_clicked)
+        self.editBtn.clicked.connect(self.on_edit_clicked)
+        self.refreshBtn.clicked.connect(self.populate_project_list)
+        self.folderBtn.clicked.connect(self.on_open_project_clicked)
+        self.helpBtn.clicked.connect(self.on_help_clicked)
+        self.closeBtn.clicked.connect(self.close)
+        self.logoutBtn.clicked.connect(self.logout)
 
         # Fetch Data from the API
         self.populate_project_list()
@@ -41,7 +42,8 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
     # Button Handlers
     # -------------------------
     def create_new_project(self) -> None:
-        QtWidgets.QMessageBox.information(self, "Update", "Feature coming soon!")
+        self.project_upload_window = ProjectUploadWindow(api=self.api)
+        self.project_upload_window.show()
 
     def on_sync_clicked(self) -> None:
         QtWidgets.QMessageBox.information(self, "Update", "Feature coming soon!")
@@ -148,7 +150,7 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
             table.setItem(row, 0, item1)
 
             item2 = QtWidgets.QTableWidgetItem(
-                project.get("user", {}).get("username", "Unknown")
+                project.get("owner", {}).get("username", "Unknown")
             )
             item2.setFlags(item2.flags() ^ QtCore.Qt.ItemIsEditable)
             table.setItem(row, 1, item2)
