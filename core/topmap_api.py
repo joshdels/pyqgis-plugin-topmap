@@ -67,6 +67,10 @@ class TopMapApiClient:
         except requests.RequestException as e:
             raise RuntimeError(f"Failed to fetch user information: {e}")
 
+    def get_project(self, project_id: int) -> dict:
+        """Fetch a single project by ID"""
+        pass
+
     def get_projects(self):
         """Fetch projects for the authenticated user."""
         if not self.token:
@@ -95,7 +99,6 @@ class TopMapApiClient:
             raise RuntimeError(f"Failed to create project: {e}")
 
     def upload_project(self, id, input_payload):
-        # to be edited in the uploads (put)
         """Upload a new project from authenticated users."""
         if not self.token:
             raise ValueError("Not Authenticated. Please login first.")
@@ -110,3 +113,7 @@ class TopMapApiClient:
             return response.json()
         except requests.RequestException as e:
             raise RuntimeError(f"Failed to fetch projects: {e}")
+
+    def delete_project(self, project_id: int) -> bool:
+        """Delete a project by ID."""
+        pass

@@ -1,9 +1,11 @@
+import os
+
 from PyQt5 import QtCore, QtWidgets, uic
+from qgis.core import QgsSettings
+
 from ..core.topmap_api import TopMapApiClient
 from ..core.project_manager import ProjectSettingsManager
 from .project_upload_window import ProjectUploadWindow
-from qgis.core import QgsSettings
-import os
 
 
 class ProjectlistWindow(QtWidgets.QMainWindow):
@@ -26,7 +28,7 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
 
         # Buttons
         self.newBtn.clicked.connect(self.create_new_project)
-        self.loadBtn.clicked.connect(self.on_sync_clicked)
+        self.loadBtn.clicked.connect(self.load_projects_to_folder)
         self.editBtn.clicked.connect(self.on_edit_clicked)
         self.refreshBtn.clicked.connect(self.populate_project_list)
         self.folderBtn.clicked.connect(self.on_open_project_clicked)
@@ -44,9 +46,6 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
     def create_new_project(self) -> None:
         self.project_upload_window = ProjectUploadWindow(api=self.api)
         self.project_upload_window.show()
-
-    def on_sync_clicked(self) -> None:
-        QtWidgets.QMessageBox.information(self, "Update", "Feature coming soon!")
 
     def on_edit_clicked(self) -> None:
         QtWidgets.QMessageBox.information(self, "Update", "Feature coming soon!")
@@ -149,15 +148,60 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
             item1.setData(QtCore.Qt.UserRole, project)
             table.setItem(row, 0, item1)
 
-            item2 = QtWidgets.QTableWidgetItem(
-                project.get("owner", {}).get("username", "Unknown")
-            )
+            item2 = QtWidgets.QTableWidgetItem(project.get("created_at", ""))
             item2.setFlags(item2.flags() ^ QtCore.Qt.ItemIsEditable)
             table.setItem(row, 1, item2)
 
-            item3 = QtWidgets.QTableWidgetItem(project.get("created_at", ""))
-            item3.setFlags(item3.flags() ^ QtCore.Qt.ItemIsEditable)
-            table.setItem(row, 2, item3)
+    def load_projects_to_folder(self):
+        """Load the file sto pc"""
+        try:
+            projects = self.api.get_projects()
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "API Error", str(e))
+            return
+
+        root_dir = ProjectSettingsManager.get_root_dir()
+        if not root_dir:
+            QtWidgets.QMessageBox.warning(
+                self,
+                "No root Folder",
+                "Please set a root folder first using the 'Set Folder Button'",
+            )
+            return
+
+        base_path = os.path.join(root_dir, "TopMapSync")
+        os.makedirs(base_path, exist_ok=True)
+
+        for project in projects:
+            folder_name = project["name"]
+            sefe_folder_name = "".join(
+                c for c in folder_name if c.isalnum() or c in " _-"
+            ).rstrip()
+            project_path = os.path.join(base_path, sefe_folder_name)
+            os.makedirs(project_path, exist_ok=True)
+
+            files = project.get("files", [])
+            if not files:
+                print(f"No files in project: {folder_name}")
+                continue
+
+            for file in files:
+                file_url = file["file"]
+                file_name = file["name"]
+                safe_file_name = "".join(
+                    c for c in file_name if c.isalnum() or c in " ._-"
+                ).rstrip()
+                file_path = os.path.join(project_path, safe_file_name)
+
+                try:
+                    r = self.api.session.get(file_url, stream=True, timeout=10)
+                    r.raise_for_status()
+                    with open(file_path, "wb") as f:
+                        for chunk in r.iter_content(chunk_size=8192):
+                            f.write(chunk)
+                    print(f"Downloaded {file_name} to {project_path}")
+                except Exception as e:
+                    print(f"Failed to download {file_name}: {e}")
 
     def on_table_double_clicked(self, index):
         """This runs when you double click"""

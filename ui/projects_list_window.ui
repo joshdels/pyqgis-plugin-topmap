@@ -92,6 +92,9 @@
       <property name="selectionBehavior">
        <enum>QAbstractItemView::SelectRows</enum>
       </property>
+      <property name="columnCount">
+       <number>2</number>
+      </property>
       <column>
        <property name="text">
         <string>Name</string>
@@ -99,12 +102,7 @@
       </column>
       <column>
        <property name="text">
-        <string>Owner</string>
-       </property>
-      </column>
-      <column>
-       <property name="text">
-        <string>Last Update</string>
+        <string>Date</string>
        </property>
       </column>
      </widget>
