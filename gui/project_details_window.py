@@ -1,10 +1,14 @@
 import os
+
 from PyQt5 import QtWidgets, uic
+from PyQt5.QtCore import pyqtSignal
 from qgis.core import QgsSettings
 
 
 class ProjectDetailsWindow(QtWidgets.QMainWindow):
     """Window to view and edit project details."""
+
+    projectDeleted = pyqtSignal()
 
     def __init__(self, project_data, parent=None, api=None, username=None):
         super().__init__(parent)
@@ -16,6 +20,7 @@ class ProjectDetailsWindow(QtWidgets.QMainWindow):
         uic.loadUi(ui_path, self)
 
         self.project_data = project_data
+        self.api = api
 
         if username:
             self.usernameLabel.setText(username)
@@ -30,6 +35,7 @@ class ProjectDetailsWindow(QtWidgets.QMainWindow):
         self.helpButton.clicked.connect(self.update_project)  # testing
         self.closeButton.clicked.connect(self.close)
         self.logoutButton.clicked.connect(self.logout)
+        self.deleteBtn.clicked.connect(self.on_delete_clicked)
 
     def logout(self):
         """Logout the user and close the window."""
@@ -54,7 +60,37 @@ class ProjectDetailsWindow(QtWidgets.QMainWindow):
         """Handle 'Update Details' button click (placeholder)."""
         QtWidgets.QMessageBox.information(self, "Update", "Feature coming soon!")
 
-
-    def load_projects(self):
+    def on_load_clicked(self):
         """load all projects in the folder"""
         pass
+
+    def on_delete_clicked(self):
+        project_id = self.project_data.get("id")
+
+        if not project_id:
+            QtWidgets.QMessageBox.warning(
+                self, "Delete Project", "Project ID not found. Cannot delete"
+            )
+
+        reply = QtWidgets.QMessageBox.question(
+            self,
+            "Delete Project",
+            "Are you sure you want to delete this project?\nThis action cannot undo",
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+            QtWidgets.QMessageBox.No,
+        )
+
+        if reply != QtWidgets.QMessageBox.Yes:
+            return
+
+        try:
+            self.api.delete_project(project_id)
+
+            QtWidgets.QMessageBox.information(
+                self, "Deleted", "Project deleted successfully."
+            )
+
+            self.projectDeleted.emit()
+            self.close()
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Error", str(e))

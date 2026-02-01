@@ -5,7 +5,7 @@ from qgis.core import QgsSettings
 
 from ..core.topmap_api import TopMapApiClient
 from ..core.project_manager import ProjectSettingsManager
-from .project_upload_window import ProjectUploadWindow
+from .project_create_window import ProjectUploadWindow
 
 
 class ProjectlistWindow(QtWidgets.QMainWindow):
@@ -45,6 +45,7 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
     # -------------------------
     def create_new_project(self) -> None:
         self.project_upload_window = ProjectUploadWindow(api=self.api)
+        self.project_upload_window.projectCreated.connect(self.populate_project_list)
         self.project_upload_window.show()
 
     def on_edit_clicked(self) -> None:
@@ -217,6 +218,8 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
                 api=self.api,
                 username=self.usernameLabel.text(),
             )
+
+            self.details_window.projectDeleted.connect(self.populate_project_list)
             self.details_window.show()
         else:
             print("No data found in the userRole for this row")

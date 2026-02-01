@@ -203,12 +203,15 @@
     </item>
     <item>
      <layout class="QHBoxLayout" name="footerLayout">
+      <property name="spacing">
+       <number>2</number>
+      </property>
       <item>
        <widget class="QPushButton" name="loadButton">
         <property name="minimumSize">
          <size>
-          <width>100</width>
-          <height>35</height>
+          <width>50</width>
+          <height>30</height>
          </size>
         </property>
         <property name="text">
@@ -223,12 +226,25 @@
         </property>
         <property name="minimumSize">
          <size>
-          <width>100</width>
-          <height>35</height>
+          <width>50</width>
+          <height>30</height>
          </size>
         </property>
         <property name="text">
          <string>Sync</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="deleteBtn">
+        <property name="minimumSize">
+         <size>
+          <width>50</width>
+          <height>30</height>
+         </size>
+        </property>
+        <property name="text">
+         <string>Delete</string>
         </property>
        </widget>
       </item>

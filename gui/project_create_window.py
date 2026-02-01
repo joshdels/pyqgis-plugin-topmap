@@ -1,10 +1,15 @@
-from PyQt5 import QtCore, QtWidgets, uic
-from ..core.topmap_api import TopMapApiClient
 import os
+
+from PyQt5 import QtWidgets, uic
+from PyQt5.QtCore import pyqtSignal
+
+from ..core.topmap_api import TopMapApiClient
 
 
 class ProjectUploadWindow(QtWidgets.QMainWindow):
     """Project list"""
+
+    projectCreated = pyqtSignal()
 
     def __init__(self, api, parent=None):
         super().__init__(parent)
@@ -42,8 +47,16 @@ class ProjectUploadWindow(QtWidgets.QMainWindow):
             "is_private": is_private,
         }
 
-        update_project = self.api.create_project(payload)
+        try:
+            self.api.create_project(payload)
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Error", str(e))
+            return
+
+        self.projectCreated.emit()
 
         QtWidgets.QMessageBox.information(
-            self, "Project Created", f"Project created successfully:\n{update_project}"
+            self, "Project Created", f"Project created successfully"
         )
+
+        self.close()

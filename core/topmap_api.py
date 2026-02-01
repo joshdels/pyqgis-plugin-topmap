@@ -114,6 +114,17 @@ class TopMapApiClient:
         except requests.RequestException as e:
             raise RuntimeError(f"Failed to fetch projects: {e}")
 
-    def delete_project(self, project_id: int) -> bool:
+    def delete_project(self, id: int) -> bool:
         """Delete a project by ID."""
-        pass
+        if not self.token:
+            raise ValueError("Not Authenticated. Please login first.")
+
+        try:
+            response = self.session.delete(
+                f"{self.BASE_URL}/projects/{id}/", timeout=self.timeout
+            )
+            response.raise_for_status()
+            return True
+
+        except requests.RequestException as e:
+            raise RuntimeError(f"Failed to delete the project: {e}")
