@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>598</width>
-    <height>850</height>
+    <width>626</width>
+    <height>757</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -76,8 +76,8 @@
         </property>
         <property name="sizeHint" stdset="0">
          <size>
-          <width>0</width>
-          <height>0</height>
+          <width>13</width>
+          <height>13</height>
          </size>
         </property>
        </spacer>
@@ -109,16 +109,6 @@
         <property name="verticalSpacing">
          <number>15</number>
         </property>
-        <item row="0" column="1">
-         <widget class="QLineEdit" name="projectNameInput">
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>30</height>
-           </size>
-          </property>
-         </widget>
-        </item>
         <item row="0" column="0">
          <widget class="QLabel" name="label_3">
           <property name="text">
@@ -140,6 +130,16 @@
          <widget class="QCheckBox" name="isprivateCheckbox">
           <property name="text">
            <string>Private</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QLineEdit" name="projectNameInput">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>30</height>
+           </size>
           </property>
          </widget>
         </item>
@@ -202,7 +202,7 @@
      </widget>
     </item>
     <item>
-     <layout class="QHBoxLayout" name="footerLayout">
+     <layout class="QHBoxLayout" name="userLayout">
       <property name="spacing">
        <number>2</number>
       </property>
@@ -216,6 +216,19 @@
         </property>
         <property name="text">
          <string>Load to QGIS</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="geoBtn">
+        <property name="minimumSize">
+         <size>
+          <width>50</width>
+          <height>30</height>
+         </size>
+        </property>
+        <property name="text">
+         <string>GeoPackage</string>
         </property>
        </widget>
       </item>
@@ -236,6 +249,19 @@
        </widget>
       </item>
       <item>
+       <spacer name="fSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>13</width>
+          <height>13</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
        <widget class="QPushButton" name="deleteBtn">
         <property name="minimumSize">
          <size>
@@ -248,15 +274,22 @@
         </property>
        </widget>
       </item>
+     </layout>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="footerLayout">
+      <property name="spacing">
+       <number>3</number>
+      </property>
       <item>
-       <spacer name="fSpacer">
+       <spacer name="horizontalSpacer">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
         </property>
         <property name="sizeHint" stdset="0">
          <size>
-          <width>0</width>
-          <height>0</height>
+          <width>40</width>
+          <height>20</height>
          </size>
         </property>
        </spacer>
