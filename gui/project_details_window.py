@@ -2,7 +2,11 @@ import os
 
 from PyQt5 import QtWidgets, uic
 from PyQt5.QtCore import pyqtSignal
+
+from qgis.core import QgsProject
 from qgis.core import QgsSettings
+
+from ..core.project_manager import ProjectSettingsManager
 
 
 class ProjectDetailsWindow(QtWidgets.QMainWindow):
@@ -30,7 +34,7 @@ class ProjectDetailsWindow(QtWidgets.QMainWindow):
         self.display_data()
 
         # Connect buttons
-        self.loadButton.clicked.connect(self.update_project)  # testing
+        self.loadButton.clicked.connect(self.on_load_clicked)  # testing
         self.syncButton.clicked.connect(self.update_project)  # testing
         self.helpButton.clicked.connect(self.update_project)  # testing
         self.closeButton.clicked.connect(self.close)
@@ -61,8 +65,45 @@ class ProjectDetailsWindow(QtWidgets.QMainWindow):
         QtWidgets.QMessageBox.information(self, "Update", "Feature coming soon!")
 
     def on_load_clicked(self):
-        """load all projects in the folder"""
-        pass
+        """Load the QGIS project into QGIS"""
+        project_name = self.project_data.get("name")
+
+        if not project_name:
+            QtWidgets.QMessageBox.warning(
+                self, "Load Project", "Project folder not found."
+            )
+
+        root_dir = ProjectSettingsManager.get_root_dir()
+        if not root_dir or not os.path.exists(root_dir):
+            QtWidgets.QMessageBox.warning(
+                self, "Load Project", "Root folder not set or does not exists."
+            )
+            return
+
+        project_folder = os.path.join(root_dir, "TopMapSync", project_name)
+        if not os.path.exists(project_folder):
+            QtWidgets.QMessageBox.warning(
+                self, "Load Project", f"Project folder not found:\n{project_folder}"
+            )
+            return
+
+        qgz_files = [f for f in os.listdir(project_folder) if f.endswith(".qgz")]
+        if not qgz_files:
+            QtWidgets.QMessageBox.warning(
+                self, "Load Project", "No .qgz file found in the project folder."
+            )
+            return
+
+        project_file = os.path.join(project_folder, qgz_files[0])
+        try:
+            QgsProject.instance().read(project_file)
+            QtWidgets.QMessageBox.information(
+                self, "Load Project", f"Project loaded: {qgz_files[0]}"
+            )
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(
+                self, "Load Project", f"Failed to load project\n{str(e)}"
+            )
 
     def on_delete_clicked(self):
         project_id = self.project_data.get("id")
