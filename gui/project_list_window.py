@@ -154,7 +154,8 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
             table.setItem(row, 1, item2)
 
     def load_projects_to_folder(self):
-        """Load the file sto pc"""
+        # need to be updated, just open the folder .qgz
+        """Load the files to pc"""
         try:
             projects = self.api.get_projects()
         except Exception as e:

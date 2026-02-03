@@ -1,4 +1,6 @@
 import requests
+import traceback
+import os
 
 
 class TopMapApiClient:
@@ -17,7 +19,7 @@ class TopMapApiClient:
             {
                 "User-Agent": "TopMap QGIS Plugin",
                 "Accept": "application/json",
-                "Content-Type": "application/json",
+                # "Content-Type": "application/json",
             }
         )
 
@@ -89,6 +91,7 @@ class TopMapApiClient:
         """Create a new project from authenticated users."""
         if not self.token:
             raise ValueError("Not Authenticated. Please login first.")
+
         try:
             response = self.session.post(
                 f"{self.BASE_URL}/projects/", json=payload, timeout=self.timeout
@@ -128,3 +131,25 @@ class TopMapApiClient:
 
         except requests.RequestException as e:
             raise RuntimeError(f"Failed to delete the project: {e}")
+
+    def upload_file(self, project_id: int, file_path: str, relative_path: str = None):
+        if not self.token:
+            raise ValueError("Not authenticated. Please login first.")
+
+        url = f"{self.BASE_URL}/projects/{project_id}/files/upload/"
+
+        data = {}
+        if relative_path:
+            data["path"] = relative_path
+
+        with open(file_path, "rb") as f:
+            files = {"file": (os.path.basename(file_path), f)}
+            try:
+                response = self.session.post(
+                    url, files=files, data=data, timeout=self.timeout
+                )
+                response.raise_for_status()
+                return response.json()
+
+            except requests.RequestException as e:
+                raise RuntimeError(f"Failed to upload file '{file_path}': {e} ")

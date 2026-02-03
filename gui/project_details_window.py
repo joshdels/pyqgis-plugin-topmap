@@ -1,5 +1,5 @@
 import os
-
+from osgeo import ogr
 from PyQt5 import QtWidgets, uic
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtXml import QDomDocument
@@ -43,13 +43,13 @@ class ProjectDetailsWindow(QtWidgets.QMainWindow):
         self.display_data()
 
         # Connect buttons
-        self.loadButton.clicked.connect(self.on_load_clicked)  # testing
-        self.syncButton.clicked.connect(self.update_project)  # testing
+        self.loadButton.clicked.connect(self.on_load_clicked)
+        self.syncButton.clicked.connect(self.on_sync_clicked)
         self.helpButton.clicked.connect(self.update_project)  # testing
         self.closeButton.clicked.connect(self.close)
         self.logoutButton.clicked.connect(self.logout)
         self.deleteBtn.clicked.connect(self.on_delete_clicked)
-        self.geoBtn.clicked.connect(self.on_geopackage_clicked)
+        self.containerizeBtn.clicked.connect(self.on_containerize_clicked)
 
     def logout(self):
         """Logout the user and close the window."""
@@ -97,6 +97,7 @@ class ProjectDetailsWindow(QtWidgets.QMainWindow):
             )
             return
 
+        # Load QGIS Project
         qgz_files = [f for f in os.listdir(project_folder) if f.endswith(".qgz")]
         if not qgz_files:
             QtWidgets.QMessageBox.warning(
@@ -105,8 +106,23 @@ class ProjectDetailsWindow(QtWidgets.QMainWindow):
             return
 
         project_file = os.path.join(project_folder, qgz_files[0])
+        QgsProject.instance().read(project_file)
+
         try:
-            QgsProject.instance().read(project_file)
+            # Open gpkg data
+            for file in os.listdir(project_folder):
+                if file.endswith(".gpkg"):
+                    gpkg_path = os.path.join(project_folder, file)
+                    self._load_gpkg_layers(gpkg_path)
+
+            # Load all rasters
+            for file in os.listdir(project_folder):
+                if file.lower().endswith((".tif", ".tiff")):
+                    raster_path = os.path.join(project_folder, file)
+                    rlayer = QgsRasterLayer(raster_path, os.path.basename(file))
+                    if rlayer.isValid():
+                        QgsProject.instance().addMapLayer(rlayer)
+
             QtWidgets.QMessageBox.information(
                 self, "Load Project", f"Project loaded: {qgz_files[0]}"
             )
@@ -114,6 +130,26 @@ class ProjectDetailsWindow(QtWidgets.QMainWindow):
             QtWidgets.QMessageBox.critical(
                 self, "Load Project", f"Failed to load project\n{str(e)}"
             )
+
+    def _load_gpkg_layers(self, gpkg_path):
+        """Load all layers from a GeoPackage"""
+        ds = ogr.Open(gpkg_path)
+        if not ds:
+            return
+
+        for i in range(ds.GetLayerCount()):
+            layer_name = ds.GetLayerByIndex(i).GetName()
+            uri = f"{gpkg_path}|layername={layer_name}"
+            vlayer = QgsVectorLayer(uri, layer_name, "ogr")
+
+            if vlayer.isValid():
+                styles = vlayer.listStylesInDatabase()
+                if styles[1]:
+                    vlayer.loadNamedStyle(gpkg_path, True)
+
+                QgsProject.instance().addMapLayer(vlayer)
+
+        ds = None
 
     def on_delete_clicked(self):
         project_id = self.project_data.get("id")
@@ -146,7 +182,7 @@ class ProjectDetailsWindow(QtWidgets.QMainWindow):
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, "Error", str(e))
 
-    def on_geopackage_clicked(self):
+    def on_containerize_clicked(self):
         """Create GeoPackage and export all layers to it"""
 
         project_name = self.project_data.get("name")
@@ -261,7 +297,7 @@ class ProjectDetailsWindow(QtWidgets.QMainWindow):
 
     def _reload_layers_from_gpkg(self, gpkg_path):
         """Reload all layers from the GeoPackage"""
-        from osgeo import ogr
+        # from osgeo import ogr
 
         try:
             ds = ogr.Open(gpkg_path)
@@ -287,4 +323,56 @@ class ProjectDetailsWindow(QtWidgets.QMainWindow):
         except Exception as e:
             QtWidgets.QMessageBox.warning(
                 self, "Reload Layers", f"Error reloading layers: {str(e)}"
+            )
+
+    def on_sync_clicked(self):
+        project_id = self.project_data.get("id")
+        project_name = self.project_data.get("name")
+
+        if not project_id or not project_name:
+            QtWidgets.QMessageBox.warning(self, "Sync", "Project ID or name not found")
+            return
+
+        root_dir = ProjectSettingsManager.get_root_dir()
+        if not root_dir or not os.path.exists(root_dir):
+            QtWidgets.QMessageBox.warning(
+                self, "Sync", "Root directory not set or missing."
+            )
+            return
+
+        project_folder = os.path.join(root_dir, "TopMapSync", project_name)
+        if not os.path.exists(project_folder):
+            QtWidgets.QMessageBox.warning(
+                self, "Sync", f"Project folder not found:\n{project_folder}"
+            )
+            return
+
+        # Folder Looping
+        uploaded_count = 0
+        errors = []
+
+        for root, dirs, files in os.walk(project_folder):
+            for filename in files:
+                full_path = os.path.join(root, filename)
+
+                rel_path = os.path.relpath(full_path, project_folder)
+
+                try:
+                    result = self.api.upload_file(
+                        project_id, full_path, relative_path=rel_path
+                    )
+                    uploaded_count += 1
+                    print(f"Uploaded: {rel_path} -> {result}")
+                except Exception as e:
+                    errors.append(f"{rel_path}: {str(e)}")
+
+        if errors:
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Sync Completed",
+                f"Uploaded {uploaded_count} files with errors:\n" + "\n".join(errors),
+            )
+        else:
+            QtWidgets.QMessageBox.information(
+                self, "Sync Completed", f"Successfully uploaded {uploaded_count} files!"
             )
