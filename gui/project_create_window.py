@@ -39,6 +39,8 @@ class ProjectUploadWindow(QtWidgets.QMainWindow):
         event.accept()
 
     def on_create_clicked(self):
+        # there is still laggin or bug in the upload here then resync of the .qgz?
+        # i might consider making it inside the qgis itself and pass it via sync :)
         name = self.projectNameInput.text()
         description = self.descriptionInput.toPlainText()
         is_private = self.privateCheckbox.isChecked()
@@ -68,29 +70,24 @@ class ProjectUploadWindow(QtWidgets.QMainWindow):
                 base_path = os.path.join(root_dir, "TopMapSync")
                 os.makedirs(base_path, exist_ok=True)
 
+                safe_folder_name = "".join(
+                    c for c in name if c.isalnum() or c in " _-"
+                ).rstrip()
+                project_path = os.path.join(base_path, safe_folder_name)
+                os.makedirs(project_path, exist_ok=True)
+
                 try:
                     result = self.api.download_project(project_id, base_path)
 
-                    if result["downloaded_count"] > 0:
-                        QtWidgets.QMessageBox.information(
-                            self,
-                            "Project Created",
-                            f"Project '{name}' created successfully!\n\n"
-                            f"Location: {result['project_path']}",
-                        )
-                    else:
-                        safe_folder_name = "".join(
-                            c for c in name if c.isalnum() or c in " _-"
-                        ).rstrip()
-                        project_path = os.path.join(base_path, safe_folder_name)
-                        os.makedirs(project_path, exist_ok=True)
-
                 except Exception as e:
-                    QtWidgets.QMessageBox.warning(
-                        self,
-                        "Project Created",
-                        f"Project '{name}' created on server.\n\n",
-                    )
+                    print(f"Download failed: {e}")
+
+                QtWidgets.QMessageBox.information(
+                    self,
+                    "Project Created",
+                    f"Project '{name}' created successfully!\n\n"
+                    f"Location: {project_path}",
+                )
             else:
                 QtWidgets.QMessageBox.information(
                     self,

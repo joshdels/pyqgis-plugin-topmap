@@ -69,8 +69,16 @@ class TopMapApiClient:
             raise RuntimeError(f"Failed to fetch user information: {e}")
 
     def get_project(self, project_id: int) -> dict:
-        """Fetch a single project by ID"""
-        pass
+        if not self.token:
+            raise ValueError("Not authenticated. Please login first.")
+        try:
+            resp = self.session.get(
+                f"{self.BASE_URL}/projects/{project_id}/", timeout=self.timeout
+            )
+            resp.raise_for_status()
+            return resp.json()
+        except requests.RequestException as e:
+            raise RuntimeError(f"Failed to fetch project {project_id}: {e}")
 
     def get_projects(self):
         """Fetch projects for the authenticated user."""
@@ -94,7 +102,8 @@ class TopMapApiClient:
         try:
             # Get project details including files
             response = self.session.get(
-                f"{self.BASE_URL}/projects/{project_id}/", timeout=self.timeout
+                f"{self.BASE_URL}/projects/{project_id}/",
+                timeout=self.timeout,
             )
             response.raise_for_status()
             project = response.json()
@@ -115,13 +124,18 @@ class TopMapApiClient:
             for file in files:
                 file_url = file["file"]
                 file_name = file["name"]
-                safe_file_name = "".join(
-                    c for c in file_name if c.isalnum() or c in " ._-"
-                ).rstrip()
+
+                name_part, extension = os.path.splitext(file_name)
+                clean_name = "".join(c for c in name_part if c.isalnum() or c in " _-")
+                safe_file_name = f"{clean_name}{extension}"
                 file_path = os.path.join(project_path, safe_file_name)
 
                 try:
-                    r = self.session.get(file_url, stream=True, timeout=10)
+                    r = self.session.get(
+                        file_url,
+                        stream=True,
+                        timeout=20,
+                    )
                     r.raise_for_status()
                     with open(file_path, "wb") as f:
                         for chunk in r.iter_content(chunk_size=8192):

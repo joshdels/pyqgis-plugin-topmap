@@ -1,5 +1,6 @@
 import os
 import shutil
+import requests
 
 from PyQt5 import QtCore, QtWidgets, uic
 from qgis.core import QgsSettings
@@ -20,7 +21,6 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
         )
         uic.loadUi(ui_path, self)
 
-        # --- ADD THIS TO INJECT THE PATH LABEL ---
         self.refresh_directory_display()
 
         # Other Windows
@@ -201,14 +201,20 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
             for file in files:
                 file_url = file["file"]
                 file_name = file["name"]
-                safe_file_name = "".join(
-                    c for c in file_name if c.isalnum() or c in " ._-"
+
+                name_part, extension = os.path.splitext(file_name)
+
+                clean_name = "".join(
+                    c for c in name_part if c.isalnum() or c in " _-"
                 ).rstrip()
+
+                safe_file_name = f"{clean_name}{extension}"
                 file_path = os.path.join(project_path, safe_file_name)
 
                 try:
-                    r = self.api.session.get(file_url, stream=True, timeout=10)
+                    r = requests.get(file_url, stream=True, timeout=15, headers={})
                     r.raise_for_status()
+
                     with open(file_path, "wb") as f:
                         for chunk in r.iter_content(chunk_size=8192):
                             f.write(chunk)
