@@ -19,7 +19,6 @@ class TopMapApiClient:
             {
                 "User-Agent": "TopMap QGIS Plugin",
                 "Accept": "application/json",
-                # "Content-Type": "application/json",
             }
         )
 
@@ -86,6 +85,63 @@ class TopMapApiClient:
             return response.json()
         except requests.RequestException as e:
             raise RuntimeError(f"Failed to fetch projects: {e}")
+
+    def download_project(self, project_id: int, destination_folder: str):
+        """Download all files from a specific project by ID."""
+        if not self.token:
+            raise ValueError("Not authenticated. Please login first.")
+
+        try:
+            # Get project details including files
+            response = self.session.get(
+                f"{self.BASE_URL}/projects/{project_id}/", timeout=self.timeout
+            )
+            response.raise_for_status()
+            project = response.json()
+
+            # Create project folder
+            project_name = project.get("name", f"project_{project_id}")
+            safe_folder_name = "".join(
+                c for c in project_name if c.isalnum() or c in " _-"
+            ).rstrip()
+            project_path = os.path.join(destination_folder, safe_folder_name)
+            os.makedirs(project_path, exist_ok=True)
+
+            # Download all files
+            files = project.get("files", [])
+            downloaded_count = 0
+            failed_files = []
+
+            for file in files:
+                file_url = file["file"]
+                file_name = file["name"]
+                safe_file_name = "".join(
+                    c for c in file_name if c.isalnum() or c in " ._-"
+                ).rstrip()
+                file_path = os.path.join(project_path, safe_file_name)
+
+                try:
+                    r = self.session.get(file_url, stream=True, timeout=10)
+                    r.raise_for_status()
+                    with open(file_path, "wb") as f:
+                        for chunk in r.iter_content(chunk_size=8192):
+                            f.write(chunk)
+                    downloaded_count += 1
+                    print(f"Downloaded {file_name} to {project_path}")
+                except Exception as e:
+                    failed_files.append(file_name)
+                    print(f"Failed to download {file_name}: {e}")
+
+            return {
+                "project_name": project_name,
+                "project_path": project_path,
+                "downloaded_count": downloaded_count,
+                "failed_files": failed_files,
+                "total_files": len(files),
+            }
+
+        except requests.RequestException as e:
+            raise RuntimeError(f"Failed to download project {project_id}: {e}")
 
     def create_project(self, payload):
         """Create a new project from authenticated users."""

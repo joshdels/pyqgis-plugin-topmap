@@ -209,55 +209,6 @@
      </widget>
     </item>
     <item>
-     <widget class="QGroupBox" name="statusBox">
-      <property name="title">
-       <string>System Status</string>
-      </property>
-      <layout class="QVBoxLayout" name="statusLayout">
-       <item>
-        <layout class="QHBoxLayout" name="dirLayout">
-         <item>
-          <widget class="QLabel" name="label_6">
-           <property name="text">
-            <string>Local Directory</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLineEdit" name="folderPathInput"/>
-         </item>
-         <item>
-          <widget class="QToolButton" name="findFolderButton">
-           <property name="text">
-            <string>...</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QPushButton" name="browseButton">
-           <property name="text">
-            <string>Browse</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_7">
-         <property name="font">
-          <font>
-           <italic>true</italic>
-          </font>
-         </property>
-         <property name="text">
-          <string>Status: Connected and Synchronized</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </widget>
-    </item>
-    <item>
      <layout class="QHBoxLayout" name="userLayout">
       <property name="spacing">
        <number>2</number>

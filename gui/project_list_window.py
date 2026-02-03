@@ -102,9 +102,6 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
 
         profile_info = user_details.get("profile", {})
 
-    # -------------------------
-    # Logout
-    # -------------------------
     def logout(self):
         """Logout the user and close the window"""
 
@@ -123,9 +120,6 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
         QtWidgets.QMessageBox.information(self, "Logout", "You have been logged out.")
         self.close()
 
-    # -------------------------
-    # Table Logic
-    # -------------------------
     def closeEvent(self, event):
         self.api = None
         event.accept()
@@ -221,6 +215,12 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
                     print(f"Downloaded {file_name} to {project_path}")
                 except Exception as e:
                     print(f"Failed to download {file_name}: {e}")
+
+        QtWidgets.QMessageBox.information(
+            self,
+            "Projects Loaded!",
+            f"All projects from the database loaded successfully!\n\nLocation: {base_path}",
+        )
 
     def on_table_double_clicked(self, index):
         """This runs when you double click"""

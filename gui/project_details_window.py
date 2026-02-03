@@ -69,8 +69,6 @@ class ProjectDetailsWindow(QtWidgets.QMainWindow):
             self.project_data.get("description", "No description provided.")
         )
 
-        self.folderPathInput.setText(self.project_data.get("file", ""))
-
     def update_project(self):
         """Handle 'Update Details' button click (placeholder)."""
         QtWidgets.QMessageBox.information(self, "Update", "Feature coming soon!")
@@ -423,8 +421,11 @@ class ProjectDetailsWindow(QtWidgets.QMainWindow):
 
         for root, dirs, files in os.walk(project_folder):
             for filename in files:
-                full_path = os.path.join(root, filename)
+                # Only allow project files
+                if not (filename.endswith((".qgz", ".gpkg", ".qml", ".tif", ".tiff"))):
+                    continue
 
+                full_path = os.path.join(root, filename)
                 rel_path = os.path.relpath(full_path, project_folder)
 
                 try:
