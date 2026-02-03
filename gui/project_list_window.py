@@ -1,4 +1,5 @@
 import os
+import shutil
 
 from PyQt5 import QtCore, QtWidgets, uic
 from qgis.core import QgsSettings
@@ -154,8 +155,7 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
             table.setItem(row, 1, item2)
 
     def load_projects_to_folder(self):
-        # need to be updated, just open the folder .qgz
-        """Load the files to pc"""
+        """Load project files to local folder and cleanup deleted projects."""
         try:
             projects = self.api.get_projects()
         except Exception as e:
@@ -174,12 +174,29 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
         base_path = os.path.join(root_dir, "TopMapSync")
         os.makedirs(base_path, exist_ok=True)
 
+        # ----------------- Cleanup -----------------
+        project_names_api = set(
+            "".join(c for c in p["name"] if c.isalnum() or c in " _-").rstrip()
+            for p in projects
+        )
+
+        local_folders = set(os.listdir(base_path))
+        for folder in local_folders:
+            folder_path = os.path.join(base_path, folder)
+            if folder not in project_names_api and os.path.isdir(folder_path):
+                try:
+                    shutil.rmtree(folder_path)
+                    print(f"Removed local folder deleted in backend: {folder_path}")
+                except Exception as e:
+                    print(f"Failed to remove folder {folder_path}: {e}")
+
+        # ----------------- Download -----------------
         for project in projects:
             folder_name = project["name"]
-            sefe_folder_name = "".join(
+            safe_folder_name = "".join(
                 c for c in folder_name if c.isalnum() or c in " _-"
             ).rstrip()
-            project_path = os.path.join(base_path, sefe_folder_name)
+            project_path = os.path.join(base_path, safe_folder_name)
             os.makedirs(project_path, exist_ok=True)
 
             files = project.get("files", [])
