@@ -1,6 +1,7 @@
 import os
 import shutil
 import requests
+from datetime import datetime
 
 from PyQt5 import QtCore, QtWidgets, uic
 from PyQt5.QtCore import pyqtSignal
@@ -149,9 +150,23 @@ class ProjectlistPage(QtWidgets.QWidget):
             item1.setData(QtCore.Qt.UserRole, project)
             table.setItem(row, 0, item1)
 
-            item2 = QtWidgets.QTableWidgetItem(project.get("created_at", ""))
+            raw_date = project.get("created_at", "")
+
+            try:
+                if raw_date.endswith("Z"):
+                    raw_date = raw_date.replace("Z", "+00:00")
+
+                dt = datetime.fromisoformat(raw_date)
+                formatted_date = dt.strftime("%Y-%m-%d -- %H:%M -- (%Z)")
+            except Exception:
+                formatted_date = raw_date
+
+            item2 = QtWidgets.QTableWidgetItem(formatted_date)
             item2.setFlags(item2.flags() ^ QtCore.Qt.ItemIsEditable)
             table.setItem(row, 1, item2)
+
+        table.setColumnWidth(0, 460)
+        table.setColumnWidth(1, 200)
 
     def load_projects_to_folder(self):
         """Load project files to local folder and cleanup deleted projects."""

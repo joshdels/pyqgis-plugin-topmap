@@ -14,7 +14,7 @@ class ProjectUploadPage(QtWidgets.QWidget):
     backClicked = pyqtSignal()
     closeClicked = pyqtSignal()
 
-    def __init__(self, api, parent=None):
+    def __init__(self, api, username=None, parent=None):
         super().__init__(parent)
 
         ui_path = os.path.join(
@@ -26,6 +26,8 @@ class ProjectUploadPage(QtWidgets.QWidget):
             raise ValueError("ProjectUploadWindows requires a logged-in API key")
 
         self.api = api
+        self.username = username
+        self.usernameLabel.setText(self.username or "user")
 
         # Connect buttons
         self.backBtn.clicked.connect(self.backClicked.emit)

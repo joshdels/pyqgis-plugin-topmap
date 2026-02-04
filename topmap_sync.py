@@ -47,17 +47,32 @@ class TopMapSync:
         settings = QgsSettings()
         saved_token = settings.value("TopMap/token", "")
 
+        api = TopMapApiClient()
+
         if saved_token:
-            api = TopMapApiClient()
             api.token = saved_token
             api.session.headers.update({"Authorization": f"Token {saved_token}"})
+            try:
+                user_details = api.get_user_profile()
+                self.username = user_details.get("username", "user")
+            except Exception as e:
+                self.username = "user"
+                print(f"Failed to fetch user profile: {e}")
+
             self.open_main(api)
         else:
             self.login = LoginDialog(self.iface.mainWindow())
             if self.login.exec_():
-                self.open_main(api=self.login.api)
+                api = self.login.api
+                try:
+                    user_details = api.get_user_profile()
+                    self.username = user_details.get("username", "user")
+                except Exception as e:
+                    self.username = "user"
+                    print(f"Failed to fetch user profile: {e}")
+                self.open_main(api)
 
-    # Controllers
+    # CONTROLLERS
 
     def open_main(self, api):
         self.main_window = MainWindow(api, parent=self.iface.mainWindow())
@@ -67,31 +82,20 @@ class TopMapSync:
 
         project_list.closeClicked.connect(self.main_window.close)
 
-        # SIGNALS
-        project_list.createProject.connect(lambda: self.open_create_project(api))
+        # signals in main window
+        project_list.createProject.connect(
+            lambda: self.open_create_project(api, self.username)
+        )
         project_list.openProject.connect(
-            lambda data: self.open_project_details(api, data)
+            lambda data: self.open_project_details(api, data, self.username)
         )
 
         self.main_window.show()
 
-    def open_create_project(self, api):
-        page = ProjectUploadPage(api=api, parent=self.main_window)
-
+    def open_create_project(self, api, username):
+        page = ProjectUploadPage(api=api, username=username, parent=self.main_window)
         page.backClicked.connect(self.main_window.pop_page)
         page.projectCreated.connect(self.open_project_created)
-        page.closeClicked.connect(self.main_window.close)
-        self.main_window.push_page(page)
-
-    def open_project_details(self, api, project_data):
-        page = ProjectDetailsPage(
-            project_data=project_data,
-            api=api,
-            parent=self.main_window,
-        )
-
-        page.backClicked.connect(self.main_window.pop_page)
-        page.projectDeleted.connect(self.on_project_deleted)
         page.closeClicked.connect(self.main_window.close)
         self.main_window.push_page(page)
 
@@ -104,3 +108,16 @@ class TopMapSync:
 
     def on_project_deleted(self):
         self.main_window.pop_page()
+
+    def open_project_details(self, api, project_data, username):
+        page = ProjectDetailsPage(
+            project_data=project_data,
+            api=api,
+            username=username,
+            parent=self.main_window,
+        )
+
+        page.backClicked.connect(self.main_window.pop_page)
+        page.projectDeleted.connect(self.on_project_deleted)
+        page.closeClicked.connect(self.main_window.close)
+        self.main_window.push_page(page)
