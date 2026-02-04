@@ -1,5 +1,5 @@
 import os
-from PyQt5 import QtWidgets, uic
+from PyQt5 import QtCore, QtWidgets, uic
 from ..core.topmap_api import TopMapApiClient
 from qgis.core import QgsSettings
 
@@ -19,17 +19,22 @@ class LoginDialog(QtWidgets.QDialog):
         ui_path = os.path.join(os.path.dirname(__file__), "..", "ui", "login_dialog.ui")
         uic.loadUi(ui_path, self)
 
-        # API client and settings
         self.api = TopMapApiClient()
         self.settings = QgsSettings()
 
-        # Configure UI
         self.passwordInput.setEchoMode(QtWidgets.QLineEdit.Password)
         self.signinButton.clicked.connect(self.handle_login)
+        self.showBtn.clicked.connect(self.toggle_password_visibility)
+        self.showBtn.setCheckable(True)
 
-        # Load saved username if available
         saved_username = self.settings.value("TopMap/username", "")
         self.usernameInput.setText(saved_username)
+
+        self.registerLink.setText(
+            '<a href="https://topmapsolutions.com/">Create account</a>'
+        )
+        self.registerLink.setTextInteractionFlags(QtCore.Qt.TextBrowserInteraction)
+        self.registerLink.setOpenExternalLinks(True)
 
     def handle_login(self) -> None:
         """Attempt login with entered username and password."""
@@ -61,3 +66,12 @@ class LoginDialog(QtWidgets.QDialog):
 
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, "Login Failed", str(e))
+            self.forgotLink.setVisible(True)
+
+    def toggle_password_visibility(self, checked):
+        if checked:
+            self.passwordInput.setEchoMode(QtWidgets.QLineEdit.Normal)
+            self.showBtn.setText("Hide")
+        else:
+            self.passwordInput.setEchoMode(QtWidgets.QLineEdit.Password)
+            self.showBtn.setText("Show")

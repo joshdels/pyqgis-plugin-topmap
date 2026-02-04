@@ -3,8 +3,8 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction
 from qgis.core import QgsSettings
 
-from .gui.login_dialog import LoginDialog
 from .core.topmap_api import TopMapApiClient
+from .gui.login_dialog import LoginDialog
 from .gui.main_window import MainWindow
 from .gui.project_details_window import ProjectDetailsPage
 from .gui.project_list_window import ProjectlistPage
@@ -78,9 +78,11 @@ class TopMapSync:
         self.main_window = MainWindow(api, parent=self.iface.mainWindow())
 
         project_list = ProjectlistPage(api=api)
+
         self.main_window.push_page(project_list)
 
         project_list.closeClicked.connect(self.main_window.close)
+        project_list.logoutClicked.connect(self.on_logout)
 
         # signals in main window
         project_list.createProject.connect(
@@ -97,6 +99,7 @@ class TopMapSync:
         page.backClicked.connect(self.main_window.pop_page)
         page.projectCreated.connect(self.open_project_created)
         page.closeClicked.connect(self.main_window.close)
+        page.logoutClicked.connect(self.main_window.close)
         self.main_window.push_page(page)
 
     def open_project_created(self):
@@ -109,6 +112,10 @@ class TopMapSync:
     def on_project_deleted(self):
         self.main_window.pop_page()
 
+        current = self.main_window.stack.currentWidget()
+        if hasattr(current, "populate_project_list"):
+            current.populate_project_list()
+
     def open_project_details(self, api, project_data, username):
         page = ProjectDetailsPage(
             project_data=project_data,
@@ -120,4 +127,12 @@ class TopMapSync:
         page.backClicked.connect(self.main_window.pop_page)
         page.projectDeleted.connect(self.on_project_deleted)
         page.closeClicked.connect(self.main_window.close)
+        page.logoutClicked.connect(self.on_logout)
+
         self.main_window.push_page(page)
+
+    def on_logout(self):
+        if hasattr(self, "main_window") and self.main_window:
+            self.main_window.close()
+            self.main_window.deleteLater()
+            self.main_window = None

@@ -22,11 +22,11 @@ class ProjectDetailsPage(QtWidgets.QWidget):
     projectDeleted = pyqtSignal()
     backClicked = pyqtSignal()
     closeClicked = pyqtSignal()
+    logoutClicked = pyqtSignal()
 
     def __init__(self, project_data, parent=None, api=None, username=None):
         super().__init__(parent)
 
-        # Load the UI
         ui_path = os.path.join(
             os.path.dirname(__file__), "..", "ui", "project_details_window.ui"
         )
@@ -61,7 +61,7 @@ class ProjectDetailsPage(QtWidgets.QWidget):
         settings.remove("TopMap/remember")
 
         QtWidgets.QMessageBox.information(self, "Logout", "You have been logged out.")
-        self.close()
+        self.logoutClicked.emit()
 
     def display_data(self):
         """Populate UI widgets with project data."""

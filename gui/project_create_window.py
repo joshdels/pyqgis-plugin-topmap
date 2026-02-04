@@ -2,17 +2,18 @@ import os
 
 from PyQt5 import QtWidgets, uic
 from PyQt5.QtCore import pyqtSignal
-
+from qgis.core import QgsProject, QgsSettings
 
 from ..core.project_manager import ProjectSettingsManager
 
 
 class ProjectUploadPage(QtWidgets.QWidget):
-    """Project list"""
+    """Create a new project, upload to cloud, and initialize its local QGIS workspace."""
 
     projectCreated = pyqtSignal()
     backClicked = pyqtSignal()
     closeClicked = pyqtSignal()
+    logoutClicked = pyqtSignal()
 
     def __init__(self, api, username=None, parent=None):
         super().__init__(parent)
@@ -32,19 +33,37 @@ class ProjectUploadPage(QtWidgets.QWidget):
         # Connect buttons
         self.backBtn.clicked.connect(self.backClicked.emit)
         self.createBtn.clicked.connect(self.on_create_clicked)
+        self.logoutBtn.clicked.connect(self.logout)
         self.helpBtn.clicked.connect(self.on_temprary_clicked)
         self.closeBtn.clicked.connect(self.closeClicked.emit)
 
     def on_temprary_clicked(self):
-        """Handle 'Update Details' button click (placeholder)."""
+        """Placeholder handler for upcoming features."""
         QtWidgets.QMessageBox.information(self, "Update", "Feature coming soon!")
 
     def closeEvent(self, event):
         event.accept()
 
+    def logout(self):
+        """Logout the user and close the window"""
+        try:
+            if self.api:
+                self.api.logout()
+
+        except Exception as e:
+            print(f"Logout API Error {e}")
+
+        settings = QgsSettings()
+        settings.remove("TopMap")
+
+        self.usernameLabel.clear()
+        self.api = None
+
+        QtWidgets.QMessageBox.information(self, "Logout", "You have been logged out.")
+
+        self.logoutClicked.emit()
+
     def on_create_clicked(self):
-        # there is still laggin or bug in the upload here then resync of the .qgz?
-        # i might consider making it inside the qgis itself and pass it via sync :)
         name = self.projectNameInput.text()
         description = self.descriptionInput.toPlainText()
         is_private = self.privateCheckbox.isChecked()
@@ -62,7 +81,6 @@ class ProjectUploadPage(QtWidgets.QWidget):
         }
 
         try:
-            # Create the project on the server
             created_project = self.api.create_project(payload)
             project_id = created_project.get("id")
 
@@ -79,17 +97,16 @@ class ProjectUploadPage(QtWidgets.QWidget):
                 project_path = os.path.join(base_path, safe_folder_name)
                 os.makedirs(project_path, exist_ok=True)
 
-                try:
-                    result = self.api.download_project(project_id, base_path)
+                qgz_path = os.path.join(project_path, f"{safe_folder_name}.qgz")
+                created = self._create_qgz_file(qgz_path)
 
-                except Exception as e:
-                    print(f"Download failed: {e}")
+                if not created:
+                    return
 
                 QtWidgets.QMessageBox.information(
                     self,
                     "Project Created",
-                    f"Project '{name}' created successfully!\n\n"
-                    f"Location: {project_path}",
+                    f"{name} created successfully!\n\n" f"Location: {project_path}",
                 )
             else:
                 QtWidgets.QMessageBox.information(
@@ -103,3 +120,19 @@ class ProjectUploadPage(QtWidgets.QWidget):
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, "Error", str(e))
             return
+
+    def _create_qgz_file(self, project_path: str) -> bool:
+        project = QgsProject.instance()
+        project.clear()
+
+        success = project.write(project_path)
+
+        if not success:
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Failed Initialization",
+                "Failed to create QGIS project (.qgz) file",
+            )
+            return False
+
+        return True

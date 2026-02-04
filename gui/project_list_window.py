@@ -20,6 +20,7 @@ class ProjectlistPage(QtWidgets.QWidget):
     createProject = pyqtSignal()
     closeClicked = pyqtSignal()
     statusMessage = pyqtSignal(str)
+    logoutClicked = pyqtSignal()
 
     def __init__(self, api=None, parent=None):
         super().__init__(parent)
@@ -53,6 +54,15 @@ class ProjectlistPage(QtWidgets.QWidget):
     # Button Handlers
     # -------------------------
     def create_new_project(self) -> None:
+        root_dir = ProjectSettingsManager.get_root_dir()
+        if not root_dir:
+            QtWidgets.QMessageBox.warning(
+                self,
+                "No root Folder",
+                "Please set a root folder first using the 'Set Folder Button'",
+            )
+            return
+
         self.createProject.emit()
 
     def on_edit_clicked(self) -> None:
@@ -110,12 +120,12 @@ class ProjectlistPage(QtWidgets.QWidget):
 
     def logout(self):
         """Logout the user and close the window"""
-
         try:
             if self.api:
                 self.api.logout()
+
         except Exception as e:
-            print(f"Logout API Error")
+            print(f"Logout API Error {e}")
 
         settings = QgsSettings()
         settings.remove("TopMap")
@@ -124,7 +134,8 @@ class ProjectlistPage(QtWidgets.QWidget):
         self.api = None
 
         QtWidgets.QMessageBox.information(self, "Logout", "You have been logged out.")
-        self.close()
+
+        self.logoutClicked.emit()
 
     def closeEvent(self, event):
         self.api = None

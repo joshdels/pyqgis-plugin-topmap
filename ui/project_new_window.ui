@@ -78,7 +78,7 @@
       </spacer>
      </item>
      <item>
-      <widget class="QPushButton" name="logoutButton">
+      <widget class="QPushButton" name="logoutBtn">
        <property name="text">
         <string>Log out</string>
        </property>

@@ -7,9 +7,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.api = api
         self.setWindowTitle("TopMap Sync")
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
 
         self.stack = QtWidgets.QStackedWidget()
-        self.setMinimumSize(700,700)
+        self.setMinimumSize(700, 700)
         self.setCentralWidget(self.stack)
 
     def push_page(self, widget):
