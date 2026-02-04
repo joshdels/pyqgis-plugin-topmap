@@ -2,7 +2,7 @@ import os
 
 from PyQt5 import QtWidgets, uic
 from PyQt5.QtCore import pyqtSignal
-from qgis.core import QgsProject, QgsSettings
+from qgis.core import QgsProject, QgsSettings, QgsVectorLayer, QgsVectorFileWriter
 
 from ..core.project_manager import ProjectSettingsManager
 
@@ -98,9 +98,12 @@ class ProjectUploadPage(QtWidgets.QWidget):
                 os.makedirs(project_path, exist_ok=True)
 
                 qgz_path = os.path.join(project_path, f"{safe_folder_name}.qgz")
-                created = self._create_qgz_file(qgz_path)
+                gpkg_path = os.path.join(project_path, f"data.gpkg")
 
-                if not created:
+                qgis = self._create_qgz_file(qgz_path)
+                vector = self._create_vector_gpkg_file(gpkg_path)
+
+                if not qgis or vector:
                     return
 
                 QtWidgets.QMessageBox.information(
@@ -136,3 +139,17 @@ class ProjectUploadPage(QtWidgets.QWidget):
             return False
 
         return True
+
+    def _create_vector_gpkg_file(self, project_path: str) -> bool:
+        temp_layer = QgsVectorLayer("Point?crs=EPSG:4326", "temp_layer", "memory")
+
+        options = QgsVectorFileWriter.SaveVectorOptions()
+        options.driverName = "GPKG"
+        options.layerName = "temp_layer"
+        options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteFile
+
+        res, err = QgsVectorFileWriter.writeAsVectorFormatV2(
+            temp_layer, project_path, QgsProject.instance().transformContext(), options
+        )
+        if res == QgsVectorFileWriter.NoError:
+            print("GeoPackage created (with dummy layer)")
