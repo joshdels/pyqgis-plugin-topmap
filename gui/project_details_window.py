@@ -12,9 +12,12 @@ from qgis.core import (
     QgsVectorFileWriter,
     QgsSettings,
     QgsRasterLayer,
+    QgsRasterPipe,
+    QgsRasterFileWriter,
 )
 
 from ..core.project_manager import ProjectSettingsManager
+from ..core.qgis_process import QgisRasterProcessor
 
 
 class ProjectDetailsPage(QtWidgets.QWidget):
@@ -206,167 +209,29 @@ class ProjectDetailsPage(QtWidgets.QWidget):
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, "Error", str(e))
 
-    # def on_containerize_clicked(self):
-    #     """Create GeoPackage for vectors and copy rasters, preserving order and styles."""
-
-    #     project_name = self.project_data.get("name")
-    #     if not project_name:
-    #         QtWidgets.QMessageBox.warning(self, "GeoPackage", "Project name not found.")
-    #         return
-
-    #     root_dir = ProjectSettingsManager.get_root_dir()
-    #     if not root_dir or not os.path.exists(root_dir):
-    #         QtWidgets.QMessageBox.warning(
-    #             self, "GeoPackage", "Root directory not set or missing."
-    #         )
-    #         return
-
-    #     project_folder = os.path.join(root_dir, "TopMapSync", project_name)
-    #     os.makedirs(project_folder, exist_ok=True)
-
-    #     gpkg_path = os.path.join(project_folder, "data.gpkg")
-    #     qgz_path = os.path.join(project_folder, f"{project_name}.qgz")
-
-    #     layers = list(QgsProject.instance().mapLayers().values())
-    #     if not layers:
-    #         QtWidgets.QMessageBox.information(
-    #             self, "GeoPackage", "No layers found in QGIS."
-    #         )
-    #         return
-
-    #     # ------------------ Collect layer info BEFORE removing ------------------
-    #     layer_order = []
-    #     vector_layers = []
-    #     raster_info = {}  # name -> (src_path, dst_path, qml_path)
-
-    #     for layer in layers:
-    #         layer_order.append(layer.name())
-    #         if isinstance(layer, QgsVectorLayer):
-    #             vector_layers.append(layer.clone())
-    #         elif isinstance(layer, QgsRasterLayer):
-    #             src_path = layer.dataProvider().dataSourceUri()
-    #             # Handle raster paths with parameters
-    #             if "|" in src_path:
-    #                 src_path = src_path.split("|")[0]
-
-    #             dst_path = os.path.join(project_folder, os.path.basename(src_path))
-    #             qml_path = os.path.join(project_folder, f"{layer.name()}.qml")
-
-    #             # Save style BEFORE removing layers
-    #             layer.saveNamedStyle(qml_path)
-
-    #             raster_info[layer.name()] = (src_path, dst_path, qml_path)
-
-    #     # ------------------ Remove layers to unlock files ------------------
-    #     QgsProject.instance().removeAllMapLayers()
-
-    #     # ------------------ Export vector layers to GeoPackage ------------------
-    #     errors = []
-    #     success_count = 0
-    #     first_layer = True
-
-    #     for layer in vector_layers:
-    #         layer_name = layer.name().replace(" ", "_")
-    #         options = QgsVectorFileWriter.SaveVectorOptions()
-    #         options.driverName = "GPKG"
-    #         options.layerName = layer_name
-    #         options.actionOnExistingFile = (
-    #             QgsVectorFileWriter.CreateOrOverwriteFile
-    #             if first_layer
-    #             else QgsVectorFileWriter.CreateOrOverwriteLayer
-    #         )
-    #         first_layer = False
-
-    #         err = QgsVectorFileWriter.writeAsVectorFormatV3(
-    #             layer, gpkg_path, QgsProject.instance().transformContext(), options
-    #         )
-    #         if err[0] != QgsVectorFileWriter.NoError:
-    #             errors.append(f"{layer_name}: {err[1]}")
-    #         else:
-    #             # Save style inside GeoPackage
-    #             uri = f"{gpkg_path}|layername={layer_name}"
-    #             temp_layer = QgsVectorLayer(uri, layer_name, "ogr")
-    #             if temp_layer.isValid():
-    #                 style_doc = QDomDocument()
-    #                 layer.exportNamedStyle(style_doc)
-    #                 temp_layer.importNamedStyle(style_doc)
-    #                 temp_layer.saveStyleToDatabase("default", "", True, "")
-    #             success_count += 1
-
-    #     # ------------------ Copy raster layers to project folder ------------------
-    #     raster_count = 0
-    #     for name, (src_path, dst_path, qml_path) in raster_info.items():
-    #         if os.path.exists(src_path):
-    #             if src_path != dst_path:
-    #                 try:
-    #                     shutil.copy2(src_path, dst_path)
-    #                     raster_count += 1
-    #                 except Exception as e:
-    #                     errors.append(f"Raster copy {name}: {str(e)}")
-
-    #     # ------------------ Reload layers with RELATIVE paths ------------------
-    #     for name in layer_order:
-    #         # Try vector
-    #         safe_name = name.replace(" ", "_")
-    #         uri = f"{gpkg_path}|layername={safe_name}"
-    #         vlayer = QgsVectorLayer(uri, name, "ogr")
-    #         if vlayer.isValid():
-    #             styles = vlayer.listStylesInDatabase()
-    #             if styles[1]:
-    #                 vlayer.loadNamedStyle(gpkg_path, True)
-    #             QgsProject.instance().addMapLayer(vlayer)
-    #             continue
-
-    #         # Try raster
-    #         if name in raster_info:
-    #             src_path, dst_path, qml_path = raster_info[name]
-
-    #             # Create NEW raster layer from copied file
-    #             rlayer = QgsRasterLayer(dst_path, name)
-    #             if rlayer.isValid():
-    #                 QgsProject.instance().addMapLayer(rlayer)
-    #                 # Load style if QML file exists
-    #                 if os.path.exists(qml_path):
-    #                     rlayer.loadNamedStyle(qml_path)
-
-    #     # ------------------ Configure project for portability ------------------
-    #     # Set project file location
-    #     QgsProject.instance().setFileName(qgz_path)
-
-    #     # Enable relative paths - CRITICAL for portability
-    #     QgsProject.instance().writeEntry("Paths", "Absolute", False)
-
-    #     # Set project home path
-    #     QgsProject.instance().setPresetHomePath(project_folder)
-    #     QgsProject.instance().homePath = project_folder
-
-    #     # ------------------ Save QGIS project file (.qgz) ------------------
-    #     try:
-    #         success = QgsProject.instance().write()
-    #         if not success:
-    #             errors.append("Failed to write .qgz project file")
-    #         else:
-    #             # Verify layers were saved
-    #             reloaded_layers = QgsProject.instance().mapLayers()
-    #             if len(reloaded_layers) == 0:
-    #                 errors.append("WARNING: Project saved but no layers found!")
-    #     except Exception as e:
-    #         errors.append(f"Error saving .qgz: {str(e)}")
-
-    #     # ------------------ Show result ------------------
-    #     msg = f"Successfully containerized and saved project!\n\n"
-    #     msg += f"Exported {success_count} vector layers to GeoPackage\n"
-    #     if raster_count:
-    #         msg += f"Copied {raster_count} raster files\n"
-    #     msg += f"Saved portable project as: {project_name}.qgz\n"
-    #     msg += f"Project uses relative paths (portable)\n"
-    #     msg += f"\nLocation: {project_folder}"
-
-    #     if errors:
-    #         msg += "\n\nErrors:\n" + "\n".join(errors)
-
-    #     QtWidgets.QMessageBox.information(self, "Containerize Project", msg)
-
     def on_containerize_clicked(self):
-        
-        pass
+        project = QgsProject.instance()
+
+        project_name = self.project_data.get("name")
+        root_dir = ProjectSettingsManager.get_root_dir()
+        project_folder = os.path.join(root_dir, "TopMapSync", project_name)
+        os.makedirs(project_folder, exist_ok=True)
+
+        raster_processor = QgisRasterProcessor(project, project_folder)
+        errors = raster_processor.process_rasters()
+
+        project.writeEntry("Paths", "Absolute", False)
+        project.setPresetHomePath(project_folder)
+
+        if errors:
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Containerize",
+                "Some rasters failed:\n" + "\n".join(errors),
+            )
+        else:
+            QtWidgets.QMessageBox.information(
+                self,
+                "Containerize",
+                "All rasters saved with styles successfully!",
+            )
