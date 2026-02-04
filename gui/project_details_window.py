@@ -10,19 +10,18 @@ from qgis.core import (
     QgsProject,
     QgsVectorFileWriter,
     QgsSettings,
-    QgsCoordinateReferenceSystem,
-    QgsFields,
-    QgsWkbTypes,
     QgsRasterLayer,
 )
 
 from ..core.project_manager import ProjectSettingsManager
 
 
-class ProjectDetailsWindow(QtWidgets.QMainWindow):
+class ProjectDetailsPage(QtWidgets.QWidget):
     """Window to view and edit project details."""
 
     projectDeleted = pyqtSignal()
+    backClicked = pyqtSignal()
+    closeClicked = pyqtSignal()
 
     def __init__(self, project_data, parent=None, api=None, username=None):
         super().__init__(parent)
@@ -44,10 +43,12 @@ class ProjectDetailsWindow(QtWidgets.QMainWindow):
         self.display_data()
 
         # Connect buttons
+        self.backBtn.clicked.connect(self.backClicked.emit)
+        self.closeBtn.clicked.connect(self.closeClicked.emit)
         self.loadButton.clicked.connect(self.on_load_clicked)
         self.syncButton.clicked.connect(self.on_sync_clicked)
-        self.helpButton.clicked.connect(self.update_project)  # testing
-        self.closeButton.clicked.connect(self.close)
+        self.helpBtn.clicked.connect(self.update_project)  # testing
+        self.closeBtn.clicked.connect(self.close)
         self.logoutButton.clicked.connect(self.logout)
         self.deleteBtn.clicked.connect(self.on_delete_clicked)
         self.containerizeBtn.clicked.connect(self.on_containerize_clicked)

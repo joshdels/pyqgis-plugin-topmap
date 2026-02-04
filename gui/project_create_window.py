@@ -5,13 +5,14 @@ from PyQt5.QtCore import pyqtSignal
 
 
 from ..core.project_manager import ProjectSettingsManager
-from ..core.topmap_api import TopMapApiClient
 
 
-class ProjectUploadWindow(QtWidgets.QMainWindow):
+class ProjectUploadPage(QtWidgets.QWidget):
     """Project list"""
 
     projectCreated = pyqtSignal()
+    backClicked = pyqtSignal()
+    closeClicked = pyqtSignal()
 
     def __init__(self, api, parent=None):
         super().__init__(parent)
@@ -27,9 +28,10 @@ class ProjectUploadWindow(QtWidgets.QMainWindow):
         self.api = api
 
         # Connect buttons
+        self.backBtn.clicked.connect(self.backClicked.emit)
         self.createBtn.clicked.connect(self.on_create_clicked)
         self.helpBtn.clicked.connect(self.on_temprary_clicked)
-        self.closeBtn.clicked.connect(self.close)
+        self.closeBtn.clicked.connect(self.closeClicked.emit)
 
     def on_temprary_clicked(self):
         """Handle 'Update Details' button click (placeholder)."""
@@ -62,7 +64,6 @@ class ProjectUploadWindow(QtWidgets.QMainWindow):
             created_project = self.api.create_project(payload)
             project_id = created_project.get("id")
 
-            # Emit signal to refresh project list
             self.projectCreated.emit()
 
             root_dir = ProjectSettingsManager.get_root_dir()

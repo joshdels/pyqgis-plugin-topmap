@@ -7,3 +7,15 @@ This is an integration of the topmapsolutions project management for the sync
 This is still in devlopment but i enjoy it :)
 
 ![TopmapSync QPlugin](resources/topmapsync.png)
+
+
+```
+QGIS
+ └── TopMapSync (controller)
+     ├── LoginDialog (modal, disposable)
+     └── MainWindow (persistent)
+         └── QStackedWidget
+             ├── ProjectListPage
+             ├── ProjectUploadPage
+             └── ProjectDetailsPage
+```

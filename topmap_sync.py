@@ -4,8 +4,11 @@ from PyQt5.QtWidgets import QAction
 from qgis.core import QgsSettings
 
 from .gui.login_dialog import LoginDialog
-from .gui.project_list_window import ProjectlistWindow
 from .core.topmap_api import TopMapApiClient
+from .gui.main_window import MainWindow
+from .gui.project_details_window import ProjectDetailsPage
+from .gui.project_list_window import ProjectlistPage
+from .gui.project_create_window import ProjectUploadPage
 
 PLUGIN_NAME = "TopMap Sync"
 
@@ -15,7 +18,6 @@ class TopMapSync:
 
     def __init__(self, iface):
         self.iface = iface
-        self.window: ProjectlistWindow | None = None
         self.login: LoginDialog | None = None
         self.action: QAction | None = None
 
@@ -46,36 +48,59 @@ class TopMapSync:
         saved_token = settings.value("TopMap/token", "")
 
         if saved_token:
-            # Already authenticated, show project list
-            self.show_project_list(token=saved_token)
+            api = TopMapApiClient()
+            api.token = saved_token
+            api.session.headers.update({"Authorization": f"Token {saved_token}"})
+            self.open_main(api)
         else:
-            # Prompt login
             self.login = LoginDialog(self.iface.mainWindow())
             if self.login.exec_():
-                self.show_project_list(api=self.login.api)
+                self.open_main(api=self.login.api)
 
-    def show_project_list(
-        self, api: TopMapApiClient | None = None, token: str | None = None
-    ):
-        """
-        Open the Project List window.
+    # Controllers
 
-        If token is provided without api, create a new TopMapApiClient
-        and set the token.
-        """
-        # Prepare API client
-        if token and not api:
-            api = TopMapApiClient()
-            api.token = token
-            api.session.headers.update({"Authorization": f"Token {token}"})
+    def open_main(self, api):
+        self.main_window = MainWindow(api, parent=self.iface.mainWindow())
 
-        # Create window if not already open
-        if self.window:
-            self.window.close()
-            self.window = None
+        project_list = ProjectlistPage(api=api)
+        self.main_window.push_page(project_list)
 
-        self.window = ProjectlistWindow(api=api, parent=self.iface.mainWindow())
+        project_list.closeClicked.connect(self.main_window.close)
 
-        # Show and populate the table
-        self.window.show()
-        self.window.populate_project_list()
+        # SIGNALS
+        project_list.createProject.connect(lambda: self.open_create_project(api))
+        project_list.openProject.connect(
+            lambda data: self.open_project_details(api, data)
+        )
+
+        self.main_window.show()
+
+    def open_create_project(self, api):
+        page = ProjectUploadPage(api=api, parent=self.main_window)
+
+        page.backClicked.connect(self.main_window.pop_page)
+        page.projectCreated.connect(self.open_project_created)
+        page.closeClicked.connect(self.main_window.close)
+        self.main_window.push_page(page)
+
+    def open_project_details(self, api, project_data):
+        page = ProjectDetailsPage(
+            project_data=project_data,
+            api=api,
+            parent=self.main_window,
+        )
+
+        page.backClicked.connect(self.main_window.pop_page)
+        page.projectDeleted.connect(self.on_project_deleted)
+        page.closeClicked.connect(self.main_window.close)
+        self.main_window.push_page(page)
+
+    def open_project_created(self):
+        self.main_window.pop_page()
+
+        current = self.main_window.stack.currentWidget()
+        if hasattr(current, "populate_project_list"):
+            current.populate_project_list()
+
+    def on_project_deleted(self):
+        self.main_window.pop_page()

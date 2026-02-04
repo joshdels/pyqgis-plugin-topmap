@@ -44,10 +44,11 @@ class LoginDialog(QtWidgets.QDialog):
             return
 
         try:
-            # Perform API login
             token = self.api.login(username, password)
 
-            # Save token and preferences if "Remember me" is checked
+            self.api.token = token
+            self.api.session.headers.update({"Authorization": f"Token {token}"})
+
             if remember:
                 self.settings.setValue("TopMap/token", token)
                 self.settings.setValue("TopMap/username", username)
@@ -56,7 +57,6 @@ class LoginDialog(QtWidgets.QDialog):
                 self.settings.remove("TopMap/token")
                 self.settings.setValue("TopMap/remember", False)
 
-            # Close dialog and signal successful login
             self.accept()
 
         except Exception as e:

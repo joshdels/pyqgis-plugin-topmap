@@ -3,15 +3,22 @@ import shutil
 import requests
 
 from PyQt5 import QtCore, QtWidgets, uic
+from PyQt5.QtCore import pyqtSignal
 from qgis.core import QgsSettings
+
 
 from ..core.topmap_api import TopMapApiClient
 from ..core.project_manager import ProjectSettingsManager
-from .project_create_window import ProjectUploadWindow
+from .project_create_window import ProjectUploadPage
 
 
-class ProjectlistWindow(QtWidgets.QMainWindow):
+class ProjectlistPage(QtWidgets.QWidget):
     """Project list"""
+
+    openProject = pyqtSignal(dict)
+    createProject = pyqtSignal()
+    closeClicked = pyqtSignal()
+    statusMessage = pyqtSignal(str)
 
     def __init__(self, api=None, parent=None):
         super().__init__(parent)
@@ -28,13 +35,13 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
         self.projectTable.doubleClicked.connect(self.on_table_double_clicked)
 
         # Buttons
+        self.closeBtn.clicked.connect(self.closeClicked.emit)
         self.newBtn.clicked.connect(self.create_new_project)
         self.loadBtn.clicked.connect(self.load_projects_to_folder)
         self.editBtn.clicked.connect(self.on_edit_clicked)
         self.refreshBtn.clicked.connect(self.populate_project_list)
         self.folderBtn.clicked.connect(self.on_open_project_clicked)
         self.helpBtn.clicked.connect(self.on_help_clicked)
-        self.closeBtn.clicked.connect(self.close)
         self.logoutBtn.clicked.connect(self.logout)
 
         # Fetch Data from the API
@@ -45,9 +52,7 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
     # Button Handlers
     # -------------------------
     def create_new_project(self) -> None:
-        self.project_upload_window = ProjectUploadWindow(api=self.api)
-        self.project_upload_window.projectCreated.connect(self.populate_project_list)
-        self.project_upload_window.show()
+        self.createProject.emit()
 
     def on_edit_clicked(self) -> None:
         QtWidgets.QMessageBox.information(self, "Update", "Feature coming soon!")
@@ -60,7 +65,7 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
         if path:
             ProjectSettingsManager.set_root_dir(path)
             self.refresh_directory_display()
-            self.statusBar().showMessage(f"Project root updated.", 3000)
+            self.statusMessage.emit("Project root updated.")
 
     def refresh_directory_display(self):
         """Update the label that sits below the 'Set Root Folder' button."""
@@ -234,16 +239,4 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
         project_data = self.projectTable.item(row, 0).data(QtCore.Qt.UserRole)
 
         if project_data:
-            from .project_details_window import ProjectDetailsWindow
-
-            self.details_window = ProjectDetailsWindow(
-                project_data,
-                parent=self,
-                api=self.api,
-                username=self.usernameLabel.text(),
-            )
-
-            self.details_window.projectDeleted.connect(self.populate_project_list)
-            self.details_window.show()
-        else:
-            print("No data found in the userRole for this row")
+            self.openProject.emit(project_data)
