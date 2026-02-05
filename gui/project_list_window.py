@@ -1,17 +1,26 @@
 import os
 import shutil
 import requests
+from datetime import datetime
 
 from PyQt5 import QtCore, QtWidgets, uic
+from PyQt5.QtCore import pyqtSignal
 from qgis.core import QgsSettings
+
 
 from ..core.topmap_api import TopMapApiClient
 from ..core.project_manager import ProjectSettingsManager
-from .project_create_window import ProjectUploadWindow
+from .project_create_window import ProjectUploadPage
 
 
-class ProjectlistWindow(QtWidgets.QMainWindow):
+class ProjectlistPage(QtWidgets.QWidget):
     """Project list"""
+
+    openProject = pyqtSignal(dict)
+    createProject = pyqtSignal()
+    closeClicked = pyqtSignal()
+    statusMessage = pyqtSignal(str)
+    logoutClicked = pyqtSignal()
 
     def __init__(self, api=None, parent=None):
         super().__init__(parent)
@@ -28,13 +37,13 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
         self.projectTable.doubleClicked.connect(self.on_table_double_clicked)
 
         # Buttons
+        self.closeBtn.clicked.connect(self.closeClicked.emit)
         self.newBtn.clicked.connect(self.create_new_project)
         self.loadBtn.clicked.connect(self.load_projects_to_folder)
         self.editBtn.clicked.connect(self.on_edit_clicked)
         self.refreshBtn.clicked.connect(self.populate_project_list)
         self.folderBtn.clicked.connect(self.on_open_project_clicked)
         self.helpBtn.clicked.connect(self.on_help_clicked)
-        self.closeBtn.clicked.connect(self.close)
         self.logoutBtn.clicked.connect(self.logout)
 
         # Fetch Data from the API
@@ -45,9 +54,16 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
     # Button Handlers
     # -------------------------
     def create_new_project(self) -> None:
-        self.project_upload_window = ProjectUploadWindow(api=self.api)
-        self.project_upload_window.projectCreated.connect(self.populate_project_list)
-        self.project_upload_window.show()
+        root_dir = ProjectSettingsManager.get_root_dir()
+        if not root_dir:
+            QtWidgets.QMessageBox.warning(
+                self,
+                "No root Folder",
+                "Please set a root folder first using the 'Set Folder Button'",
+            )
+            return
+
+        self.createProject.emit()
 
     def on_edit_clicked(self) -> None:
         QtWidgets.QMessageBox.information(self, "Update", "Feature coming soon!")
@@ -60,7 +76,7 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
         if path:
             ProjectSettingsManager.set_root_dir(path)
             self.refresh_directory_display()
-            self.statusBar().showMessage(f"Project root updated.", 3000)
+            self.statusMessage.emit("Project root updated.")
 
     def refresh_directory_display(self):
         """Update the label that sits below the 'Set Root Folder' button."""
@@ -104,12 +120,12 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
 
     def logout(self):
         """Logout the user and close the window"""
-
         try:
             if self.api:
                 self.api.logout()
+
         except Exception as e:
-            print(f"Logout API Error")
+            print(f"Logout API Error {e}")
 
         settings = QgsSettings()
         settings.remove("TopMap")
@@ -118,7 +134,8 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
         self.api = None
 
         QtWidgets.QMessageBox.information(self, "Logout", "You have been logged out.")
-        self.close()
+
+        self.logoutClicked.emit()
 
     def closeEvent(self, event):
         self.api = None
@@ -144,9 +161,23 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
             item1.setData(QtCore.Qt.UserRole, project)
             table.setItem(row, 0, item1)
 
-            item2 = QtWidgets.QTableWidgetItem(project.get("created_at", ""))
+            raw_date = project.get("created_at", "")
+
+            try:
+                if raw_date.endswith("Z"):
+                    raw_date = raw_date.replace("Z", "+00:00")
+
+                dt = datetime.fromisoformat(raw_date)
+                formatted_date = dt.strftime("%Y-%m-%d -- %H:%M -- (%Z)")
+            except Exception:
+                formatted_date = raw_date
+
+            item2 = QtWidgets.QTableWidgetItem(formatted_date)
             item2.setFlags(item2.flags() ^ QtCore.Qt.ItemIsEditable)
             table.setItem(row, 1, item2)
+
+        table.setColumnWidth(0, 460)
+        table.setColumnWidth(1, 200)
 
     def load_projects_to_folder(self):
         """Load project files to local folder and cleanup deleted projects."""
@@ -234,16 +265,4 @@ class ProjectlistWindow(QtWidgets.QMainWindow):
         project_data = self.projectTable.item(row, 0).data(QtCore.Qt.UserRole)
 
         if project_data:
-            from .project_details_window import ProjectDetailsWindow
-
-            self.details_window = ProjectDetailsWindow(
-                project_data,
-                parent=self,
-                api=self.api,
-                username=self.usernameLabel.text(),
-            )
-
-            self.details_window.projectDeleted.connect(self.populate_project_list)
-            self.details_window.show()
-        else:
-            print("No data found in the userRole for this row")
+            self.openProject.emit(project_data)

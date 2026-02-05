@@ -3,9 +3,12 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction
 from qgis.core import QgsSettings
 
-from .gui.login_dialog import LoginDialog
-from .gui.project_list_window import ProjectlistWindow
 from .core.topmap_api import TopMapApiClient
+from .gui.login_dialog import LoginDialog
+from .gui.main_window import MainWindow
+from .gui.project_details_window import ProjectDetailsPage
+from .gui.project_list_window import ProjectlistPage
+from .gui.project_create_window import ProjectUploadPage
 
 PLUGIN_NAME = "TopMap Sync"
 
@@ -15,7 +18,6 @@ class TopMapSync:
 
     def __init__(self, iface):
         self.iface = iface
-        self.window: ProjectlistWindow | None = None
         self.login: LoginDialog | None = None
         self.action: QAction | None = None
 
@@ -45,37 +47,92 @@ class TopMapSync:
         settings = QgsSettings()
         saved_token = settings.value("TopMap/token", "")
 
+        api = TopMapApiClient()
+
         if saved_token:
-            # Already authenticated, show project list
-            self.show_project_list(token=saved_token)
+            api.token = saved_token
+            api.session.headers.update({"Authorization": f"Token {saved_token}"})
+            try:
+                user_details = api.get_user_profile()
+                self.username = user_details.get("username", "user")
+            except Exception as e:
+                self.username = "user"
+                print(f"Failed to fetch user profile: {e}")
+
+            self.open_main(api)
         else:
-            # Prompt login
             self.login = LoginDialog(self.iface.mainWindow())
             if self.login.exec_():
-                self.show_project_list(api=self.login.api)
+                api = self.login.api
+                try:
+                    user_details = api.get_user_profile()
+                    self.username = user_details.get("username", "user")
+                except Exception as e:
+                    self.username = "user"
+                    print(f"Failed to fetch user profile: {e}")
+                self.open_main(api)
 
-    def show_project_list(
-        self, api: TopMapApiClient | None = None, token: str | None = None
-    ):
-        """
-        Open the Project List window.
+    # CONTROLLERS
 
-        If token is provided without api, create a new TopMapApiClient
-        and set the token.
-        """
-        # Prepare API client
-        if token and not api:
-            api = TopMapApiClient()
-            api.token = token
-            api.session.headers.update({"Authorization": f"Token {token}"})
+    def open_main(self, api):
+        self.main_window = MainWindow(api, parent=self.iface.mainWindow())
 
-        # Create window if not already open
-        if self.window:
-            self.window.close()
-            self.window = None
+        project_list = ProjectlistPage(api=api)
 
-        self.window = ProjectlistWindow(api=api, parent=self.iface.mainWindow())
+        self.main_window.push_page(project_list)
 
-        # Show and populate the table
-        self.window.show()
-        self.window.populate_project_list()
+        project_list.closeClicked.connect(self.main_window.close)
+        project_list.logoutClicked.connect(self.on_logout)
+
+        # signals in main window
+        project_list.createProject.connect(
+            lambda: self.open_create_project(api, self.username)
+        )
+        project_list.openProject.connect(
+            lambda data: self.open_project_details(api, data, self.username)
+        )
+
+        self.main_window.show()
+
+    def open_create_project(self, api, username):
+        page = ProjectUploadPage(api=api, username=username, parent=self.main_window)
+        page.backClicked.connect(self.main_window.pop_page)
+        page.projectCreated.connect(self.open_project_created)
+        page.closeClicked.connect(self.main_window.close)
+        page.logoutClicked.connect(self.main_window.close)
+        self.main_window.push_page(page)
+
+    def open_project_created(self):
+        self.main_window.pop_page()
+
+        current = self.main_window.stack.currentWidget()
+        if hasattr(current, "populate_project_list"):
+            current.populate_project_list()
+
+    def on_project_deleted(self):
+        self.main_window.pop_page()
+
+        current = self.main_window.stack.currentWidget()
+        if hasattr(current, "populate_project_list"):
+            current.populate_project_list()
+
+    def open_project_details(self, api, project_data, username):
+        page = ProjectDetailsPage(
+            project_data=project_data,
+            api=api,
+            username=username,
+            parent=self.main_window,
+        )
+
+        page.backClicked.connect(self.main_window.pop_page)
+        page.projectDeleted.connect(self.on_project_deleted)
+        page.closeClicked.connect(self.main_window.close)
+        page.logoutClicked.connect(self.on_logout)
+
+        self.main_window.push_page(page)
+
+    def on_logout(self):
+        if hasattr(self, "main_window") and self.main_window:
+            self.main_window.close()
+            self.main_window.deleteLater()
+            self.main_window = None
