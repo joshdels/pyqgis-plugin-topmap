@@ -90,45 +90,59 @@ class QgisVectorProcessor:
             if isinstance(l, QgsVectorLayer)
         ]
 
+        # Determine if we need to start a fresh file or append
+        first_layer = True
+
         for vector in vectors:
             try:
                 table_name = vector.name().replace(" ", "_").lower()
-                style_path = os.path.join(self.project_folder, f"{table_name}.qml")
-                vector.saveNamedStyle(style_path)
 
                 options = QgsVectorFileWriter.SaveVectorOptions()
                 options.driverName = "GPKG"
                 options.layerName = table_name
-                options.actionOnExistingFile = (
-                    QgsVectorFileWriter.CreateOrOverwriteLayer
-                )
+
+                # FIX: If it's the first layer, recreate the whole file.
+                # If not, just overwrite the specific layer inside the file.
+                if first_layer:
+                    options.actionOnExistingFile = (
+                        QgsVectorFileWriter.CreateOrOverwriteFile
+                    )
+                    first_layer = False
+                else:
+                    options.actionOnExistingFile = (
+                        QgsVectorFileWriter.CreateOrOverwriteLayer
+                    )
 
                 context = self.project.transformContext()
-                result, error_msg = QgsVectorFileWriter.writeAsVectorFormatV2(
+                # Use V3 to avoid unpacking error
+                res, err, _, _ = QgsVectorFileWriter.writeAsVectorFormatV3(
                     vector, self.gpkg_path, context, options
                 )
 
-                if result != QgsVectorFileWriter.NoError:
-                    raise RuntimeError(f"Write error: {error_msg}")
+                if res != QgsVectorFileWriter.NoError:
+                    raise RuntimeError(f"Write error: {err}")
 
+                # Load new layer and save style to DB
                 source_path = f"{self.gpkg_path}|layername={table_name}"
                 new_vector = QgsVectorLayer(source_path, vector.name(), "ogr")
 
-                if not new_vector.isValid():
-                    raise RuntimeError("Failed to load vector from GPKG")
+                if new_vector.isValid():
+                    # Save style directly into the GPKG
+                    new_vector.saveStyleToDatabase(table_name, "", True, "")
 
-                old_id = vector.id()
-                self.project.addMapLayer(new_vector, False)
-                new_vector.loadNamedStyle(style_path)
+                    # Swap logic
+                    old_id = vector.id()
+                    self.project.addMapLayer(new_vector, False)
 
-                root = self.project.layerTreeRoot()
-                old_node = root.findLayer(old_id)
-                if old_node:
-                    parent = old_node.parent()
-                    idx = parent.children().index(old_node)
-                    parent.insertLayer(idx, new_vector)
+                    # Move position in tree
+                    root = self.project.layerTreeRoot()
+                    old_node = root.findLayer(old_id)
+                    if old_node:
+                        old_node.parent().insertLayer(
+                            old_node.parent().children().index(old_node), new_vector
+                        )
 
-                self.project.removeMapLayer(old_id)
+                    self.project.removeMapLayer(old_id)
 
             except Exception as e:
                 errors.append(f"Vector {vector.name()}: {str(e)}")
