@@ -6,8 +6,8 @@ import os
 class TopMapApiClient:
     """Simple client for TopMap API."""
 
-    # BASE_URL = "https://topmapsolutions.com/api/v1"
-    BASE_URL = "http://127.0.0.1:8000/api/v1"
+    BASE_URL = "https://topmapsolutions.com/api/v1"
+    # BASE_URL = "http://127.0.0.1:8000/api/v1"
 
     def __init__(self, timeout=20):
         """Initialize the API client with default headers and timeout."""
