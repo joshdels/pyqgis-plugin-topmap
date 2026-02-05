@@ -1,23 +1,15 @@
 import os
-import shutil
-from osgeo import ogr
 from PyQt5 import QtWidgets, uic
 from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtXml import QDomDocument
 
 from qgis.core import (
     QgsProject,
-    QgsVectorLayer,
     QgsProject,
-    QgsVectorFileWriter,
     QgsSettings,
-    QgsRasterLayer,
-    QgsRasterPipe,
-    QgsRasterFileWriter,
 )
 
 from ..core.project_manager import ProjectSettingsManager
-from ..core.qgis_process import QgisRasterProcessor
+from ..core.qgis_process import QgisRasterProcessor, QgisVectorProcessor
 
 
 class ProjectDetailsPage(QtWidgets.QWidget):
@@ -115,6 +107,8 @@ class ProjectDetailsPage(QtWidgets.QWidget):
         success = project.read(qgz_path)
 
         if success:
+            project.setPresetHomePath(project_folder)
+
             QtWidgets.QMessageBox.information(
                 self, "Load Project", f"Project '{qgz_files[0]}' loaded successfully."
             )
@@ -210,28 +204,37 @@ class ProjectDetailsPage(QtWidgets.QWidget):
             QtWidgets.QMessageBox.critical(self, "Error", str(e))
 
     def on_containerize_clicked(self):
+        """Handles saving raster layers to folder, vectors to data.gpkg, and makes project portable."""
         project = QgsProject.instance()
-
         project_name = self.project_data.get("name")
+
         root_dir = ProjectSettingsManager.get_root_dir()
         project_folder = os.path.join(root_dir, "TopMapSync", project_name)
         os.makedirs(project_folder, exist_ok=True)
 
-        raster_processor = QgisRasterProcessor(project, project_folder)
-        errors = raster_processor.process_rasters()
+        qgz_path = os.path.join(project_folder, f"{project_name}.qgz")
 
-        project.writeEntry("Paths", "Absolute", False)
+        project.setFileName(qgz_path)
         project.setPresetHomePath(project_folder)
+        project.writeEntry("Paths", "/Absolute", False)
 
-        if errors:
-            QtWidgets.QMessageBox.warning(
-                self,
-                "Containerize",
-                "Some rasters failed:\n" + "\n".join(errors),
-            )
+        project.write()
+
+        total_errors = []
+
+        raster_processor = QgisRasterProcessor(project, project_folder)
+        total_errors.extend(raster_processor.process_rasters())
+
+        vector_processor = QgisVectorProcessor(project, project_folder)
+        total_errors.extend(vector_processor.process_vector())
+
+        success = project.write(qgz_path)
+
+        if success:
+            project.read(qgz_path)
+            msg = "Project is now fully portable (Rasters + GPKG)!"
+            if total_errors:
+                msg += "\n\nWarnings: \n" + "\n".join(total_errors)
+            QtWidgets.QMessageBox.information(self, "Success", msg)
         else:
-            QtWidgets.QMessageBox.information(
-                self,
-                "Containerize",
-                "All rasters saved with styles successfully!",
-            )
+            QtWidgets.QMessageBox.critical(self, "Error", "Failed to finalize project.")
